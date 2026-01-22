@@ -1,93 +1,64 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/genai";
 import { Roadmap } from "../types";
 
-// Always use const ai = new GoogleGenAI({apiKey: import.meta.env.VITE_GEMINI_API_KEY});
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+const ai = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 export const generateRoadmap = async (
   goal: string,
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  const model = 'gemini-3-flash-preview';
+  const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
   
-  const response = await ai.models.generateContent({
-    model,
-    contents: `You are an expert curriculum designer. Based on the following user input, generate a structured, comprehensive learning roadmap.
+  const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap for:
+    Goal: ${goal}
+    Background: ${background}
+    Constraints: ${constraints}
     
-    Learning Goal: ${goal}
-    Current Background: ${background}
-    Constraints & Preferences: ${constraints}
-    
-    The output must be a valid JSON object matching this structure exactly:
+    Return ONLY raw JSON (no markdown formatting, no code blocks) matching this structure:
     {
       "title": "String",
       "domain": "String",
       "nodes": [
         {
-          "id": "node-1",
-          "title": "String",
-          "description": "2-3 sentences",
-          "nodeType": "concept|milestone|optional",
-          "category": "String",
-          "difficulty": "beginner|intermediate|advanced",
-          "estimatedHours": Number,
-          "prerequisites": ["node-id"],
-          "learningObjectives": ["string"],
-          "keyTopics": ["string"],
-          "position": { "x": Number, "y": Number },
-          "resources": [
-            {
-              "id": "res-1",
-              "url": "String",
-              "title": "String",
-              "author": "String",
-              "platform": "YouTube|MDN|GitHub|etc",
-              "format": "video|article|interactive|documentation",
-              "description": "String",
-              "duration": Number,
-              "difficulty": "beginner|intermediate|advanced",
-              "isFree": true
-            }
-          ]
+          "id": "1",
+          "title": "Node Title",
+          "description": "Brief description",
+          "nodeType": "concept",
+          "category": "Foundation",
+          "difficulty": "beginner",
+          "estimatedHours": 2,
+          "prerequisites": [],
+          "learningObjectives": ["Objective 1"],
+          "keyTopics": ["Topic 1"],
+          "position": { "x": 0, "y": 0 },
+          "resources": []
         }
       ],
-      "edges": [
-        { "id": "edge-1", "source": "node-1", "target": "node-2" }
-      ]
-    }
-    
-    Ensure the nodes are positioned logically in a top-down or left-right flow. Provide at least 3-5 nodes per stage (Foundation, Intermediate, Advanced, Specialization). Provide 3-5 high-quality resources for EACH node. Use real URLs where possible or placeholders for high-quality expected content.`,
-    config: {
-      responseMimeType: "application/json",
-      temperature: 0.4
-    }
-  });
+      "edges": []
+    }`;
 
   try {
-    const rawJson = response.text.trim();
-    const data = JSON.parse(rawJson);
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
     
-    // Fix: Include 'createdAt' property to match Roadmap interface
+    // CLEANER: Strip markdown code blocks if they exist
+    const cleanedJson = responseText.replace(/```json|```/g, '').trim();
+    
+    const data = JSON.parse(cleanedJson);
+    
     return {
       id: `roadmap-${Date.now()}`,
-      title: data.title,
-      domain: data.domain,
+      ...data,
       nodes: data.nodes.map((n: any) => ({
         ...n,
         status: n.prerequisites.length === 0 ? 'available' : 'locked'
       })),
-      edges: data.edges,
-      progress: {
-        completedNodes: 0,
-        totalNodes: data.nodes.length,
-        percentage: 0
-      },
+      progress: { completedNodes: 0, totalNodes: data.nodes.length, percentage: 0 },
       createdAt: Date.now()
     };
   } catch (error) {
-    console.error("Failed to parse Gemini response:", error);
-    throw new Error("Could not generate your roadmap. Please try again.");
+    console.error("Gemini Error:", error);
+    throw new Error("Failed to generate roadmap. Please try again.");
   }
 };
