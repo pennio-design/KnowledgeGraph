@@ -41,7 +41,7 @@ export const generateRoadmap = async (
           "resources": [
             {
               "id": "res-1",
-              "url": "https://example.com", 
+              "url": "[https://example.com](https://example.com)", 
               "title": "Resource Title",
               "author": "Author Name",
               "platform": "YouTube|Documentation|Course",
@@ -73,8 +73,9 @@ export const generateRoadmap = async (
       },
     });
 
-    // CORRECT for @google/genai SDK: Access text as a property
-    const responseText = response.text || ""; 
+    // CRITICAL FIX for @google/genai SDK:
+    // In the new SDK, text() is a method, not a property.
+    const responseText = response.text ? response.text() : ""; 
     
     // Safety: Remove markdown blocks just in case
     const cleanedJson = responseText.replace(/```json|```/g, '').trim();
