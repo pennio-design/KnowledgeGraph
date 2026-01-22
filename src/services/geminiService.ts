@@ -1,7 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Roadmap } from "../types";
 
-// Initialize the client
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 export const generateRoadmap = async (
@@ -9,93 +8,83 @@ export const generateRoadmap = async (
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // UPGRADE: Using Gemini 2.0 Flash Experimental. 
-  // Smarter than Pro, Faster than Flash.
-  const modelId = "gemini-2.0-flash-exp"; 
+  // REVERTED: 'gemini-1.5-flash' is the "Fast/Original" engine.
+  // It is instant, reliable, and doesn't timeout on mobile.
+  const modelId = "gemini-1.5-flash"; 
 
-  const prompt = `You are "The Wolf" - an elite technical curriculum architect. 
-    Design a high-level, practical learning roadmap.
+  const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
     
     Goal: ${goal}
-    User Background: ${background}
+    Background: ${background}
     Constraints: ${constraints}
     
-    CRITICAL INSTRUCTION: Return ONLY valid, raw JSON. 
-    Do NOT use Markdown code blocks. Do NOT include \`\`\`json.
-    
-    Structure the response to match this interface:
+    Return ONLY raw JSON (no markdown, no code blocks) matching this structure:
     {
-      "title": "String (High-Impact Title)",
-      "domain": "String (Field of Study)",
+      "title": "String",
+      "domain": "String",
       "nodes": [
         {
           "id": "1",
           "title": "String",
-          "description": "Specific, actionable explanation.",
+          "description": "Brief description",
           "nodeType": "concept",
-          "category": "Foundation|Core|Specialization",
-          "difficulty": "beginner|intermediate|advanced",
-          "estimatedHours": Number,
+          "category": "Foundation",
+          "difficulty": "beginner",
+          "estimatedHours": 2,
           "prerequisites": [],
-          "learningObjectives": ["Skill 1", "Skill 2"],
-          "keyTopics": ["Topic 1", "Topic 2"],
+          "learningObjectives": ["Objective 1"],
+          "keyTopics": ["Topic 1"],
           "position": { "x": 0, "y": 0 },
           "resources": [
-            {
-              "id": "res-1",
-              "url": "https://example.com", 
-              "title": "Resource Title",
-              "author": "Author Name",
-              "platform": "YouTube|Documentation|Course",
+             {
+              "id": "r1",
+              "title": "Resource Name",
+              "url": "https://example.com",
+              "platform": "YouTube|Web",
               "format": "video|article",
-              "description": "Why this resource rocks",
+              "description": "Brief info",
               "duration": 10,
-              "difficulty": "intermediate",
-              "isFree": true
-            }
+              "difficulty": "beginner",
+              "isFree": true,
+              "author": "Author Name"
+             }
           ]
         }
       ],
-      "edges": [
-        { "id": "e1-2", "source": "1", "target": "2" }
-      ]
+      "edges": []
     }
     
-    LOGIC: 
-    1. Create a "Zero to Hero" arc.
-    2. Minimum 6 nodes.
-    3. Resources must be real and high-quality.`;
+    Provide 5-8 nodes. Ensure logical flow.`;
 
   try {
     const response = await ai.models.generateContent({
       model: modelId,
       contents: prompt,
-      // Removed responseMimeType to prevent compatibility issues
+      config: {
+        responseMimeType: "application/json", 
+      },
     });
 
-    // ROBUSTNESS: Handle both function (new SDK) and property (old SDK) access
-    // This fixes the crash if the SDK version is slightly different
+    // ROBUSTNESS: Handle SDK text access safely
     let responseText = "";
     if (typeof response.text === 'function') {
         responseText = response.text();
-    } else if (response.text) {
-        responseText = response.text as string;
     } else {
-        throw new Error("Empty response from AI");
+        responseText = (response.text as string) || "";
     }
     
-    // Clean potential markdown
+    // CLEANER: Strip markdown just in case Flash adds it
     const cleanedJson = responseText.replace(/```json|```/g, '').trim();
     
     const data = JSON.parse(cleanedJson);
 
-    // AUTO-LAYOUT: Vertical Zig-Zag for mobile readability
+    // LAYOUT: Keep the Zig-Zag so nodes are visible
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
       position: { 
-        x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -220 : 220), 
-        y: index * 260 
+        x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -200 : 200), 
+        y: index * 250 
       },
       status: index === 0 ? 'available' : (node.prerequisites.length === 0 ? 'available' : 'locked'),
       resources: node.resources || []
@@ -116,7 +105,7 @@ export const generateRoadmap = async (
     };
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    // EXPOSE THE REAL ERROR to the user for debugging
-    throw new Error(error.message || "Unknown error occurred");
+    // Show the actual error message if something goes wrong
+    throw new Error(error.message || "Failed to generate roadmap.");
   }
 };
