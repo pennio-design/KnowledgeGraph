@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateRoadmap } from './services/geminiService';
 import { Roadmap, RoadmapNode, UserStats, ActivityLog, Achievement } from './types';
@@ -318,7 +317,8 @@ const App: React.FC = () => {
         )}
 
         {view === 'roadmap' && activeRoadmap && (
-          <div className="flex-1 relative flex">
+          // Fixed height container to ensure React Flow renders correctly on mobile
+          <div className="relative w-full h-[calc(100vh-80px)] bg-slate-50">
             <RoadmapGraph 
               nodes={activeRoadmap.nodes} 
               edges={activeRoadmap.edges} 
