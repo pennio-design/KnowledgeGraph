@@ -8,9 +8,9 @@ export const generateRoadmap = async (
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // FIXED: Use the specific version ID "gemini-1.5-flash-001"
-  // This resolves the "404 Not Found" error caused by the generic alias.
-  const modelId = "gemini-1.5-flash-001"; 
+  // FIXED: 'gemini-1.5-flash' was shut down in late 2025.
+  // UPGRADE: 'gemini-2.5-flash' is the new standard production model.
+  const modelId = "gemini-2.5-flash"; 
 
   const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
     
@@ -65,7 +65,7 @@ export const generateRoadmap = async (
       },
     });
 
-    // BUILD SAFE: Keep accessing text as a property (fixes Red X)
+    // BUILD SAFE: Access text as a property (fixes Red X)
     const responseText = response.text || ""; 
     
     // CRASH SAFE: Clean markdown (fixes "Failed to generate")
