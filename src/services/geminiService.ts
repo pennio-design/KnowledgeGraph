@@ -8,8 +8,8 @@ export const generateRoadmap = async (
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // SWITCH: 'gemini-1.5-flash' is the stable production model.
-  // It has high rate limits so your users won't get "Quota Exceeded" errors.
+  // 1. FIXED: Switch to High-Limit Production Model
+  // This removes the "Quota Exceeded" error.
   const modelId = "gemini-1.5-flash"; 
 
   const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
@@ -65,21 +65,21 @@ export const generateRoadmap = async (
       },
     });
 
-    // ROBUSTNESS: This handles both SDK versions (Function vs Property)
-    // This prevents the "Red X" build errors you saw earlier.
+    // 2. FIXED: Hybrid Accessor to stop Build Failures
+    // Checks if .text is a function or a property so it works on ALL SDK versions.
     let responseText = "";
-    if (typeof response.text === 'function') {
+    if (response.text && typeof response.text === 'function') {
         responseText = response.text();
     } else {
         responseText = (response.text as string) || "";
     }
     
-    // CLEANER: Strip markdown just in case
+    // 3. FIXED: Markdown Cleaner (Prevents "Failed to generate" crash)
     const cleanedJson = responseText.replace(/```json|```/g, '').trim();
     
     const data = JSON.parse(cleanedJson);
 
-    // LAYOUT: Keep the Zig-Zag so nodes are visible
+    // 4. FIXED: Zig-Zag Layout (Keeps nodes visible)
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
@@ -106,7 +106,6 @@ export const generateRoadmap = async (
     };
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    // Show the actual error message if something goes wrong
     throw new Error(error.message || "Failed to generate roadmap.");
   }
 };
