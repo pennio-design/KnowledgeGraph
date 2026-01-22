@@ -47,14 +47,34 @@ export const generateRoadmap = async (
     
     const data = JSON.parse(cleanedJson);
     
+        // ... inside generateRoadmap function ...
+    const data = JSON.parse(cleanedJson);
+    
+    // FORCE LAYOUT: Overwrite AI coordinates to guarantee visibility
+    const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
+      ...node,
+      id: node.id || `node-${index}`, // Ensure ID exists
+      // Create a vertical zig-zag pattern (Center, Left, Right, Center...)
+      position: { 
+        x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -200 : 200), 
+        y: index * 250 
+      },
+      // Ensure the first node is always clickable/available
+      status: index === 0 ? 'available' : (node.prerequisites.length === 0 ? 'available' : 'locked'),
+      resources: node.resources || []
+    }));
+
     return {
       id: `roadmap-${Date.now()}`,
-      ...data,
-      nodes: data.nodes.map((n: any) => ({
-        ...n,
-        status: n.prerequisites.length === 0 ? 'available' : 'locked'
-      })),
-      progress: { completedNodes: 0, totalNodes: data.nodes.length, percentage: 0 },
+      title: data.title || goal,
+      domain: data.domain || "Custom Learning Path",
+      nodes: nodesWithLayout,
+      edges: data.edges || [],
+      progress: {
+        completedNodes: 0,
+        totalNodes: nodesWithLayout.length,
+        percentage: 0
+      },
       createdAt: Date.now()
     };
   } catch (error) {
