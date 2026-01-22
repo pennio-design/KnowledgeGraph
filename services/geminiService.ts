@@ -1,21 +1,24 @@
-import { GoogleGenerativeAI } from "@google/genai";
+// services/geminiService.ts
+import { GoogleGenAI } from "@google/genai"; //
 import { Roadmap } from "../types";
 
-const ai = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+// Initialize the new client
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY }); //
 
 export const generateRoadmap = async (
   goal: string,
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
-  
+  // Use 'gemini-2.0-flash' or 'gemini-1.5-flash'. '3' is not valid yet.
+  const modelId = "gemini-1.5-flash"; 
+
   const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap for:
     Goal: ${goal}
     Background: ${background}
     Constraints: ${constraints}
     
-    Return ONLY raw JSON (no markdown formatting, no code blocks) matching this structure:
+    Return ONLY raw JSON matching this structure:
     {
       "title": "String",
       "domain": "String",
@@ -39,27 +42,32 @@ export const generateRoadmap = async (
     }`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    // Correct method for @google/genai SDK
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json", // Forces JSON output
+      },
+    });
+
+    // Handle response text (Property, not method in new SDK)
+    const responseText = response.text || ""; //
     
-    // CLEANER: Strip markdown code blocks if they exist
+    // Clean markdown if strictly necessary (JSON mode usually handles this)
     const cleanedJson = responseText.replace(/```json|```/g, '').trim();
-    
+
     const data = JSON.parse(cleanedJson);
-    
-        // ... inside generateRoadmap function ...
-    const data = JSON.parse(cleanedJson);
-    
+
     // FORCE LAYOUT: Overwrite AI coordinates to guarantee visibility
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
-      id: node.id || `node-${index}`, // Ensure ID exists
-      // Create a vertical zig-zag pattern (Center, Left, Right, Center...)
+      id: node.id || `node-${index}`,
+      // Zig-zag pattern: Center -> Left -> Center -> Right
       position: { 
         x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -200 : 200), 
         y: index * 250 
       },
-      // Ensure the first node is always clickable/available
       status: index === 0 ? 'available' : (node.prerequisites.length === 0 ? 'available' : 'locked'),
       resources: node.resources || []
     }));
