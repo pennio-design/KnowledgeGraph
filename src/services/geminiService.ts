@@ -8,8 +8,9 @@ export const generateRoadmap = async (
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // 1. USE PRODUCTION MODEL (High Limits)
-  const modelId = "gemini-1.5-flash"; 
+  // FIXED: Use the specific version ID "gemini-1.5-flash-001"
+  // This resolves the "404 Not Found" error caused by the generic alias.
+  const modelId = "gemini-1.5-flash-001"; 
 
   const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
     
@@ -64,16 +65,15 @@ export const generateRoadmap = async (
       },
     });
 
-    // 2. BUILD FIX: Access text as a PROPERTY (String).
-    // The build error confirmed it is a 'get' accessor, so we do NOT use ().
+    // BUILD SAFE: Keep accessing text as a property (fixes Red X)
     const responseText = response.text || ""; 
     
-    // 3. CRASH FIX: Strip markdown
+    // CRASH SAFE: Clean markdown (fixes "Failed to generate")
     const cleanedJson = responseText.replace(/```json|```/g, '').trim();
     
     const data = JSON.parse(cleanedJson);
 
-    // 4. LAYOUT FIX: Keep Zig-Zag
+    // LAYOUT SAFE: Keep Zig-Zag (fixes invisible nodes)
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
