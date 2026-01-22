@@ -8,8 +8,7 @@ export const generateRoadmap = async (
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // 1. FIXED: Switch to High-Limit Production Model
-  // This removes the "Quota Exceeded" error.
+  // 1. USE PRODUCTION MODEL (High Limits)
   const modelId = "gemini-1.5-flash"; 
 
   const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
@@ -65,21 +64,16 @@ export const generateRoadmap = async (
       },
     });
 
-    // 2. FIXED: Hybrid Accessor to stop Build Failures
-    // Checks if .text is a function or a property so it works on ALL SDK versions.
-    let responseText = "";
-    if (response.text && typeof response.text === 'function') {
-        responseText = response.text();
-    } else {
-        responseText = (response.text as string) || "";
-    }
+    // 2. BUILD FIX: Access text as a PROPERTY (String).
+    // The build error confirmed it is a 'get' accessor, so we do NOT use ().
+    const responseText = response.text || ""; 
     
-    // 3. FIXED: Markdown Cleaner (Prevents "Failed to generate" crash)
+    // 3. CRASH FIX: Strip markdown
     const cleanedJson = responseText.replace(/```json|```/g, '').trim();
     
     const data = JSON.parse(cleanedJson);
 
-    // 4. FIXED: Zig-Zag Layout (Keeps nodes visible)
+    // 4. LAYOUT FIX: Keep Zig-Zag
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
