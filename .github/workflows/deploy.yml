@@ -25,18 +25,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # We keep the cache to speed up future builds
+          # Using the cache helps speed up your mobile-to-cloud workflow
           cache: 'npm'
 
       - name: Install dependencies
-        # 'npm ci' is safer for automated builds as it requires a package-lock.json
+        # Using install ensures your newly generated package-lock.json is used
         run: npm install
 
       - name: Build
-        # This step is critical: it "bakes" your API key into the final JS files
+        # This is the most important step for your KnowledgeGraph logic
+        # It injects the secret during the Vite build phase
         run: npm run build
         env:
-          # Match this exactly to the secret name in your GitHub Settings
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
 
       - name: Setup Pages
@@ -45,6 +45,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # This must match your outDir in vite.config.ts
           path: './dist'
 
   deploy:
