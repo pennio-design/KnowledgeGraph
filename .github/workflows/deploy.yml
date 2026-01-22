@@ -1,4 +1,3 @@
-
 name: Deploy to GitHub Pages
 
 on:
@@ -26,15 +25,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          # We keep the cache to speed up future builds
           cache: 'npm'
 
       - name: Install dependencies
+        # 'npm ci' is safer for automated builds as it requires a package-lock.json
         run: npm install
 
       - name: Build
+        # This step is critical: it "bakes" your API key into the final JS files
         run: npm run build
         env:
-          API_KEY: ${{ secrets.API_KEY }}
+          # Match this exactly to the secret name in your GitHub Settings
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
