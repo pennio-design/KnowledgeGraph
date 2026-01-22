@@ -8,80 +8,84 @@ export const generateRoadmap = async (
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // 1. REVERT: Use the model you confirmed works best
-  const model = 'gemini-2.0-flash-exp'; 
-  
-  const response = await ai.models.generateContent({
-    model,
-    contents: `You are an expert curriculum designer. Based on the following user input, generate a structured, comprehensive learning roadmap.
+  // SWITCH: 'gemini-1.5-flash' is the stable production model.
+  // It has high rate limits so your users won't get "Quota Exceeded" errors.
+  const modelId = "gemini-1.5-flash"; 
+
+  const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
     
-    Learning Goal: ${goal}
-    Current Background: ${background}
-    Constraints & Preferences: ${constraints}
+    Goal: ${goal}
+    Background: ${background}
+    Constraints: ${constraints}
     
-    CRITICAL: Return ONLY valid, raw JSON. Do NOT use markdown code blocks (no \`\`\`json).
-    
-    The output must be a valid JSON object matching this structure exactly:
+    Return ONLY raw JSON (no markdown, no code blocks) matching this structure:
     {
       "title": "String",
       "domain": "String",
       "nodes": [
         {
-          "id": "node-1",
+          "id": "1",
           "title": "String",
-          "description": "2-3 sentences",
-          "nodeType": "concept|milestone|optional",
-          "category": "String",
-          "difficulty": "beginner|intermediate|advanced",
-          "estimatedHours": Number,
-          "prerequisites": ["node-id"],
-          "learningObjectives": ["string"],
-          "keyTopics": ["string"],
-          "position": { "x": Number, "y": Number },
+          "description": "Brief description",
+          "nodeType": "concept",
+          "category": "Foundation",
+          "difficulty": "beginner",
+          "estimatedHours": 2,
+          "prerequisites": [],
+          "learningObjectives": ["Objective 1"],
+          "keyTopics": ["Topic 1"],
+          "position": { "x": 0, "y": 0 },
           "resources": [
-            {
-              "id": "res-1",
-              "url": "String",
-              "title": "String",
-              "author": "String",
-              "platform": "YouTube|MDN|GitHub|etc",
-              "format": "video|article|interactive|documentation",
-              "description": "String",
-              "duration": Number,
-              "difficulty": "beginner|intermediate|advanced",
-              "isFree": true
-            }
+             {
+              "id": "r1",
+              "title": "Resource Name",
+              "url": "https://example.com",
+              "platform": "YouTube|Web",
+              "format": "video|article",
+              "description": "Brief info",
+              "duration": 10,
+              "difficulty": "beginner",
+              "isFree": true,
+              "author": "Author Name"
+             }
           ]
         }
       ],
-      "edges": [
-        { "id": "edge-1", "source": "node-1", "target": "node-2" }
-      ]
+      "edges": []
     }
     
-    Ensure the nodes are positioned logically in a top-down or left-right flow. Provide at least 3-5 nodes per stage.`,
-    config: {
-      responseMimeType: "application/json",
-      temperature: 0.4
-    }
-  });
+    Provide 5-8 nodes. Ensure logical flow.`;
 
   try {
-    // 2. BUILD FIX: Access .text as a property (String), NOT a function.
-    // This matches your original file and fixes the GitHub Action failure.
-    const rawText = response.text || "";
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json", 
+      },
+    });
 
-    // 3. CRASH FIX: Strip markdown so users don't see "Failed to generate"
-    const cleanedJson = rawText.replace(/```json|```/g, '').trim();
-    const data = JSON.parse(cleanedJson);
+    // ROBUSTNESS: This handles both SDK versions (Function vs Property)
+    // This prevents the "Red X" build errors you saw earlier.
+    let responseText = "";
+    if (typeof response.text === 'function') {
+        responseText = response.text();
+    } else {
+        responseText = (response.text as string) || "";
+    }
     
-    // 4. LAYOUT FIX: Apply Zig-Zag to ensure nodes are visible
+    // CLEANER: Strip markdown just in case
+    const cleanedJson = responseText.replace(/```json|```/g, '').trim();
+    
+    const data = JSON.parse(cleanedJson);
+
+    // LAYOUT: Keep the Zig-Zag so nodes are visible
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
       position: { 
-        x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -220 : 220), 
-        y: index * 260 
+        x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -200 : 200), 
+        y: index * 250 
       },
       status: index === 0 ? 'available' : (node.prerequisites.length === 0 ? 'available' : 'locked'),
       resources: node.resources || []
@@ -91,7 +95,7 @@ export const generateRoadmap = async (
       id: `roadmap-${Date.now()}`,
       title: data.title || goal,
       domain: data.domain || "Custom Learning Path",
-      nodes: nodesWithLayout, // Use the layout-fixed nodes
+      nodes: nodesWithLayout,
       edges: data.edges || [],
       progress: {
         completedNodes: 0,
@@ -100,8 +104,9 @@ export const generateRoadmap = async (
       },
       createdAt: Date.now()
     };
-  } catch (error) {
-    console.error("Failed to parse Gemini response:", error);
-    throw new Error("Could not generate your roadmap. Please try again.");
+  } catch (error: any) {
+    console.error("Gemini Error:", error);
+    // Show the actual error message if something goes wrong
+    throw new Error(error.message || "Failed to generate roadmap.");
   }
 };
