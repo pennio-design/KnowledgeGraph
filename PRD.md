@@ -68,3 +68,20 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 - **Concept:** Create a lobby with a friend. Both generate the same roadmap.
 - **UI:** A visual progress bar showing who is winning (User vs. Friend).
 - **Stakes:** Loser owes the winner lunch (honor system).
+
+## 3. Career Acceleration Features (Phase 2)
+
+### 3.1 Daily "Wolf" Briefs
+- **Goal:** Break "tutorial hell" with bias-for-action.
+- **Mechanism:** A dedicated dashboard card that generates a 15-minute timer-based challenge for the user's *current active node*.
+- **Vibe:** High pressure, high reward. "Don't think, build."
+
+### 3.2 The Resu-Maker (CV Engine)
+- **Goal:** Monetize learning immediately.
+- **Data Source:** Takes the `completedNodes` array.
+- **Output:** AI-generated "Corporate-Ready" bullet points that translate "I watched a video on React" into "Architected scalable frontend components using React and TypeScript."
+
+### 3.3 Proof of Work (Certificates)
+- **Goal:** Social signaling.
+- **Trigger:** 100% Roadmap Completion.
+- **Output:** A dynamically generated PDF with a unique hash (for verification).
