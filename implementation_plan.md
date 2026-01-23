@@ -43,3 +43,23 @@
 - **AI Latency:** Use meaningful loading messages during the 5-10s generation window.
 - **Graph Scalability:** Ensure React Flow handles 20-40 nodes smoothly.
 - **Data Persistence:** Initial MVP uses local state; production requires a backend (Supabase/PostgreSQL) as per PRD.
+
+## Phase 2 Implementation: The Career Suite
+
+### Week 1: The "Proof" Layer (Certificates & Resume)
+- [ ] **Install Libraries:** `jspdf` and `html2canvas` for client-side PDF generation.
+- [ ] **Certificate Component:** Create `src/components/CertificateView.tsx`.
+    - Design the layout (Canvas).
+    - Add "Download PDF" function.
+- [ ] **Resume Service:** Update `geminiService.ts` with `generateResumePoints(completedNodes)`.
+- [ ] **Dashboard Update:** Add "Career" tab to `App.tsx`.
+
+### Week 2: The "Habit" Layer (Daily Briefs)
+- [ ] **New Backend Logic:** Store `lastDailyBriefDate` in LocalStorage.
+- [ ] **Prompt Engineering:** Create "Brief Generator" prompt (Focus: Short, Action-Oriented, Fun).
+- [ ] **UI:** Add "Daily Mission" card to the top of the Dashboard.
+
+### Week 3: The "Boss Fight" (Verification Chat)
+- [ ] **New Component:** `src/components/BossFightModal.tsx`.
+- [ ] **Chat Logic:** Simple 3-turn conversation loop.
+- [ ] **Locking Mechanism:** Update `RoadmapGraph` to prevent clicking "Complete" on milestones until Boss Fight is won.
