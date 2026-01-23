@@ -4,8 +4,9 @@ import { Roadmap, RoadmapNode, UserStats, Achievement } from './types';
 import IntakeForm from './components/IntakeForm';
 import RoadmapGraph from './components/RoadmapGraph';
 import ResourcePanel from './components/ResourcePanel';
+import CareerPanel from './components/CareerPanel';
 import { 
-  Brain, LayoutDashboard, History, Settings, ChevronRight, Zap, Trophy, Timer, 
+  Brain, LayoutDashboard, Briefcase, Settings, ChevronRight, Zap, Trophy, Timer, 
   Sparkles, CheckCircle, Target, Award, ArrowUpRight, Plus, Trash2, Map
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -20,9 +21,9 @@ const INITIAL_ACHIEVEMENTS: Achievement[] = [
 const STORAGE_KEY = 'knowledge_graph_data';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'welcome' | 'intake' | 'roadmap' | 'dashboard'>('welcome');
+  const [view, setView] = useState<'welcome' | 'intake' | 'roadmap' | 'dashboard' | 'career'>('welcome');
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
-  const [savedRoadmaps, setSavedRoadmaps] = useState<Roadmap[]>([]); // NEW: Store multiple maps
+  const [savedRoadmaps, setSavedRoadmaps] = useState<Roadmap[]>([]);
   const [selectedNode, setSelectedNode] = useState<RoadmapNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<UserStats>({
@@ -34,7 +35,7 @@ const App: React.FC = () => {
     achievements: INITIAL_ACHIEVEMENTS
   });
 
-  // Load data from localStorage
+  // Load data
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -43,7 +44,6 @@ const App: React.FC = () => {
         setStats(parsed.stats || stats);
         if (parsed.savedRoadmaps) {
            setSavedRoadmaps(parsed.savedRoadmaps);
-           // If there are roadmaps, set the most recent one as active
            if (parsed.savedRoadmaps.length > 0) {
              setActiveRoadmap(parsed.savedRoadmaps[0]);
            }
@@ -54,7 +54,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save data to localStorage whenever it changes
+  // Save data
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ stats, savedRoadmaps }));
   }, [stats, savedRoadmaps]);
@@ -76,7 +76,6 @@ const App: React.FC = () => {
       const roadmap = await generateRoadmap(goal, background, constraints);
       roadmap.createdAt = Date.now();
       
-      // Add new roadmap to the START of the list
       const newSavedList = [roadmap, ...savedRoadmaps];
       setSavedRoadmaps(newSavedList);
       setActiveRoadmap(roadmap);
@@ -91,32 +90,20 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSwitchRoadmap = (roadmapId: string) => {
-    const target = savedRoadmaps.find(r => r.id === roadmapId);
-    if (target) {
-      setActiveRoadmap(target);
-      setView('roadmap');
-    }
+  const updateActiveRoadmapInList = (updatedMap: Roadmap) => {
+    setActiveRoadmap(updatedMap);
+    setSavedRoadmaps(prev => prev.map(r => r.id === updatedMap.id ? updatedMap : r));
   };
 
   const handleDeleteRoadmap = (e: React.MouseEvent, roadmapId: string) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this roadmap?")) {
+    if (confirm("Delete this roadmap? This cannot be undone.")) {
       const updatedList = savedRoadmaps.filter(r => r.id !== roadmapId);
       setSavedRoadmaps(updatedList);
       if (activeRoadmap?.id === roadmapId) {
         setActiveRoadmap(updatedList.length > 0 ? updatedList[0] : null);
       }
     }
-  };
-
-  // ... (Keep handleToggleResource, updateHistory, and handleMarkNodeComplete logic same as before, 
-  // just ensure they update the `savedRoadmaps` array too!) ...
-  
-  // REPLACEMENT HELPER for updating a specific roadmap in the list
-  const updateActiveRoadmapInList = (updatedMap: Roadmap) => {
-    setActiveRoadmap(updatedMap);
-    setSavedRoadmaps(prev => prev.map(r => r.id === updatedMap.id ? updatedMap : r));
   };
 
   const handleToggleResource = (resourceId: string) => {
@@ -128,7 +115,7 @@ const App: React.FC = () => {
       if (resource) {
         resource.completed = !resource.completed;
         setSelectedNode({ ...node });
-        updateActiveRoadmapInList(updatedRoadmap); // Update list
+        updateActiveRoadmapInList(updatedRoadmap);
       }
     }
   };
@@ -157,24 +144,44 @@ const App: React.FC = () => {
         percentage: Math.round((completedCount / updatedRoadmap.nodes.length) * 100)
       };
 
-      setStats(prev => ({
-        ...prev,
-        completedNodes: prev.completedNodes + 1,
-        totalHours: prev.totalHours + node.estimatedHours
-      }));
-
-      // updateHistory logic here... (simplified for brevity)
+      setStats(prev => {
+         const newHistory = [...prev.history];
+         const today = new Date().toISOString().split('T')[0];
+         const todayIndex = newHistory.findIndex(h => h.date === today);
+         if (todayIndex > -1) {
+             newHistory[todayIndex].nodesCompleted += 1;
+             newHistory[todayIndex].hours += node.estimatedHours;
+         } else {
+             newHistory.push({ date: today, hours: node.estimatedHours, nodesCompleted: 1 });
+         }
+         return {
+            ...prev,
+            completedNodes: prev.completedNodes + 1,
+            totalHours: prev.totalHours + node.estimatedHours,
+            history: newHistory
+         };
+      });
       
       unlockAchievement('first_node');
       if (stats.completedNodes + 1 >= 5) unlockAchievement('master_5');
       
-      updateActiveRoadmapInList(updatedRoadmap); // Update list
+      updateActiveRoadmapInList(updatedRoadmap);
       setSelectedNode({ ...node });
     }
   };
 
+  // Helper to get ALL completed node titles across all roadmaps for the resume generator
+  const getAllCompletedNodes = () => {
+    const titles: string[] = [];
+    savedRoadmaps.forEach(map => {
+        map.nodes.forEach(node => {
+            if (node.status === 'completed') titles.push(node.title);
+        });
+    });
+    return [...new Set(titles)]; // unique titles only
+  };
+
   const getChartData = () => {
-     // ... (Keep existing chart logic)
      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
      const today = new Date();
      return Array.from({ length: 7 }, (_, i) => {
@@ -198,7 +205,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col font-inter">
-      {/* Header */}
       <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-md bg-white/90">
         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setView('welcome')}>
           <div className="bg-blue-600 p-2 rounded-xl group-hover:rotate-12 transition-transform shadow-lg shadow-blue-200">
@@ -207,8 +213,11 @@ const App: React.FC = () => {
           <span className="text-xl font-black tracking-tight text-slate-900">KnowledgeGraph</span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-500">
-          <button onClick={() => setView('dashboard')} className={`hover:text-blue-600 transition-colors flex items-center gap-2 ${view === 'dashboard' ? 'text-blue-600' : ''}`}>
+          <button onClick={() => setView('dashboard')} className={}>
             <LayoutDashboard className="w-4 h-4" /> Dashboard
+          </button>
+          <button onClick={() => setView('career')} className={}>
+            <Briefcase className="w-4 h-4" /> Career
           </button>
         </nav>
         <div className="flex items-center gap-4">
@@ -221,13 +230,12 @@ const App: React.FC = () => {
       <main className="flex-1 relative overflow-hidden flex flex-col">
         {view === 'welcome' && (
           <div className="max-w-7xl mx-auto px-6 py-12 md:py-24 grid lg:grid-cols-2 gap-16 items-center flex-1">
-             {/* Same Welcome Content */}
              <div className="space-y-8">
               <h1 className="text-5xl md:text-7xl font-black text-slate-900 leading-[1.1]">
                 Master Anything <br /><span className="text-blue-600">With Precision.</span>
               </h1>
               <p className="text-xl text-slate-500 leading-relaxed max-w-xl">
-                Answer 3 questions. Get a personalized learning roadmap with the best free resources.
+                Answer 3 questions. Get a personalized learning roadmap.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button onClick={handleStartIntake} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2">
@@ -247,6 +255,12 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {view === 'career' && (
+          <div className="flex-1 bg-slate-50 overflow-y-auto">
+            <CareerPanel completedNodes={getAllCompletedNodes()} onBack={() => setView('dashboard')} />
+          </div>
+        )}
+
         {view === 'roadmap' && activeRoadmap && (
           <div className="relative w-full h-[calc(100vh-80px)] bg-slate-50">
             <RoadmapGraph nodes={activeRoadmap.nodes} edges={activeRoadmap.edges} onNodeClick={setSelectedNode} />
@@ -258,14 +272,13 @@ const App: React.FC = () => {
                 onMarkComplete={handleMarkNodeComplete}
               />
             )}
-            {/* Dashboard Back Button Overlay */}
             <div className="absolute top-6 left-6 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-xl z-10 max-w-xs">
               <h2 className="text-lg font-bold text-slate-900 mb-1">{activeRoadmap.title}</h2>
               <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
                  <span>{activeRoadmap.progress.percentage}% DONE</span>
               </div>
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${activeRoadmap.progress.percentage}%` }} />
+                  <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width:  }} />
               </div>
               <button onClick={() => setView('dashboard')} className="mt-4 w-full py-2 bg-slate-50 text-[10px] font-bold text-slate-500 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors flex items-center justify-center gap-1">
                 BACK TO LIBRARY
@@ -282,16 +295,20 @@ const App: React.FC = () => {
                   <h1 className="text-4xl font-black text-slate-900 mb-2">My Library</h1>
                   <p className="text-slate-500 font-medium">You have {savedRoadmaps.length} active learning paths.</p>
                 </div>
-                <button onClick={handleStartIntake} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                  <Plus className="w-5 h-5" /> New Roadmap
-                </button>
+                <div className="flex gap-4">
+                    <button onClick={() => setView('career')} className="bg-white text-slate-700 border-2 border-slate-100 px-5 py-3 rounded-xl font-bold text-sm hover:border-blue-200 transition-all flex items-center gap-2">
+                        <Briefcase className="w-5 h-5" /> Career Assets
+                    </button>
+                    <button onClick={handleStartIntake} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
+                        <Plus className="w-5 h-5" /> New Roadmap
+                    </button>
+                </div>
               </div>
 
-              {/* ROADMAP LIBRARY GRID */}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {savedRoadmaps.length > 0 ? (
                   savedRoadmaps.map(roadmap => (
-                    <div key={roadmap.id} onClick={() => handleSwitchRoadmap(roadmap.id)} className="group bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
+                    <div key={roadmap.id} onClick={() => { setActiveRoadmap(roadmap); setView('roadmap'); }} className="group bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
                       <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-blue-50 rounded-2xl text-blue-600">
                           <Map className="w-6 h-6" />
@@ -309,7 +326,7 @@ const App: React.FC = () => {
                           <span>{roadmap.progress.percentage}%</span>
                         </div>
                         <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                           <div className="h-full bg-emerald-400 transition-all duration-1000" style={{ width: `${roadmap.progress.percentage}%` }} />
+                           <div className="h-full bg-emerald-400 transition-all duration-1000" style={{ width:  }} />
                         </div>
                       </div>
                     </div>
@@ -321,10 +338,18 @@ const App: React.FC = () => {
                 )}
               </div>
               
-              {/* Stats Section (Simplified) */}
               <div className="mt-12 pt-12 border-t border-slate-200">
                  <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Stats</h2>
-                 {/* ... (Existing stats grid code) ... */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                        <div className="text-4xl font-black text-slate-900 mb-1">{stats.completedNodes}</div>
+                        <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nodes Done</div>
+                    </div>
+                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                        <div className="text-4xl font-black text-slate-900 mb-1">{stats.currentStreak}</div>
+                        <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">Day Streak</div>
+                    </div>
+                  </div>
               </div>
             </div>
           </div>
