@@ -6,7 +6,7 @@ import RoadmapGraph from './components/RoadmapGraph';
 import ResourcePanel from './components/ResourcePanel';
 import CareerPanel from './components/CareerPanel';
 import { 
-  Brain, LayoutDashboard, Briefcase, Settings, ChevronRight, Zap, Trophy, Timer, 
+  Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Timer, 
   Sparkles, CheckCircle, Target, Award, ArrowUpRight, Plus, Trash2, Map
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -170,7 +170,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Helper to get ALL completed node titles across all roadmaps for the resume generator
   const getAllCompletedNodes = () => {
     const titles: string[] = [];
     savedRoadmaps.forEach(map => {
@@ -178,7 +177,7 @@ const App: React.FC = () => {
             if (node.status === 'completed') titles.push(node.title);
         });
     });
-    return [...new Set(titles)]; // unique titles only
+    return [...new Set(titles)];
   };
 
   const getChartData = () => {
@@ -213,10 +212,10 @@ const App: React.FC = () => {
           <span className="text-xl font-black tracking-tight text-slate-900">KnowledgeGraph</span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-500">
-          <button onClick={() => setView('dashboard')} className={}>
+          <button onClick={() => setView('dashboard')} className={`hover:text-blue-600 transition-colors flex items-center gap-2 ${view === 'dashboard' ? 'text-blue-600' : ''}`}>
             <LayoutDashboard className="w-4 h-4" /> Dashboard
           </button>
-          <button onClick={() => setView('career')} className={}>
+          <button onClick={() => setView('career')} className={`hover:text-blue-600 transition-colors flex items-center gap-2 ${view === 'career' ? 'text-blue-600' : ''}`}>
             <Briefcase className="w-4 h-4" /> Career
           </button>
         </nav>
@@ -278,7 +277,7 @@ const App: React.FC = () => {
                  <span>{activeRoadmap.progress.percentage}% DONE</span>
               </div>
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width:  }} />
+                  <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${activeRoadmap.progress.percentage}%` }} />
               </div>
               <button onClick={() => setView('dashboard')} className="mt-4 w-full py-2 bg-slate-50 text-[10px] font-bold text-slate-500 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors flex items-center justify-center gap-1">
                 BACK TO LIBRARY
@@ -326,7 +325,7 @@ const App: React.FC = () => {
                           <span>{roadmap.progress.percentage}%</span>
                         </div>
                         <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                           <div className="h-full bg-emerald-400 transition-all duration-1000" style={{ width:  }} />
+                           <div className="h-full bg-emerald-400 transition-all duration-1000" style={{ width: `${roadmap.progress.percentage}%` }} />
                         </div>
                       </div>
                     </div>
