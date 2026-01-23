@@ -63,3 +63,18 @@
 - [ ] **New Component:** `src/components/BossFightModal.tsx`.
 - [ ] **Chat Logic:** Simple 3-turn conversation loop.
 - [ ] **Locking Mechanism:** Update `RoadmapGraph` to prevent clicking "Complete" on milestones until Boss Fight is won.
+## Phase 2: The Wolf Expansion (Career Tools)
+
+- [ ] **Feature: Daily Briefs**
+    - Update `App.tsx` to call `generateDailyBrief` when a node is clicked.
+    - Create `components/DailyBriefCard.tsx` (Timer + Markdown display).
+
+- [ ] **Feature: Resume Generator**
+    - Create `components/CareerPanel.tsx`.
+    - Add "Export to CV" button in the Dashboard.
+
+- [ ] **Feature: Certificates**
+    - Install `jspdf`.
+    - Create `services/certificateService.ts` to draw the canvas.
+    - Add "Claim Certificate" button when progress === 100%.
+
