@@ -39,3 +39,32 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 - High accessibility (ARIA attributes).
 - Performance optimized (minimal loading states).
 - Aesthetic and modern UI/UX design.
+
+## Phase 2: Career & Mastery (The "Wolf" Expansion)
+**Goal:** Transform "Learners" into "Hired Professionals" by generating proof of work, daily habits, and career assets.
+
+### 2.1 Smart Certificate Engine ("Proof of Work")
+- **Trigger:** Unlocks only when Roadmap Progress = 100%.
+- **Output:** Generates a downloadable PDF Certificate.
+- **Key Data:** User Name, Roadmap Title, Date, Unique Verification ID (Hash), and "KnowledgeGraph Verified" Seal.
+- **Vibe:** sleek, dark-mode aesthetic (Black/Gold).
+
+### 2.2 The "Resu-Maker" (CV Section)
+- **Concept:** Translates "Completed Nodes" into "Hired Bullet Points."
+- **AI Logic:** "Analyze the nodes {React, TypeScript, Tailwind} the user completed. Generate 3 punchy, Senior-level resume bullet points tailored for a Frontend Developer role."
+- **UI:** A "Career" tab in the Dashboard where users can copy/paste these directly into their CV.
+
+### 2.3 Daily "Grind" Briefs (Hands-On Mode)
+- **Problem:** "Tutorial Hell" (watching videos but not doing).
+- **Solution:** A daily, AI-generated 15-minute challenge based on the *current* active node.
+- **Example:** "Don't just watch a video on Flexbox. Build a layout with 3 divs that looks like a Mondrian painting. You have 15 mins. Go."
+
+### 2.4 The "Oral Exam" (Mastery Verification)
+- **Concept:** Prevents users from fake-clicking "Complete."
+- **Mechanism:** To mark a Milestone node as done, the user must enter a "Boss Fight" chat.
+- **Flow:** The AI asks 3 hard questions. The user must answer correctly to unlock the next stage.
+
+### 2.5 "Squad Races" (Social Accountability)
+- **Concept:** Create a lobby with a friend. Both generate the same roadmap.
+- **UI:** A visual progress bar showing who is winning (User vs. Friend).
+- **Stakes:** Loser owes the winner lunch (honor system).
