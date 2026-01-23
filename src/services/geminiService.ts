@@ -3,96 +3,83 @@ import { Roadmap } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
-// --- CORE: Roadmap Generation ---
 export const generateRoadmap = async (
   goal: string,
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // Using the Experimental "Wolf" Model (Smarter/Faster)
-  // If you get "429/Resource Exhausted", switch this string to "gemini-1.5-flash"
-  const modelId = "gemini-2.0-flash-exp"; 
+  // FIXED: 'gemini-1.5-flash' was shut down in late 2025.
+  // UPGRADE: 'gemini-2.5-flash' is the new standard production model.
+  const modelId = "gemini-2.5-flash"; 
 
-  const prompt = `You are "The Wolf" - an elite technical curriculum architect. 
-    Design a high-level, practical learning roadmap.
+  const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
     
     Goal: ${goal}
-    User Background: ${background}
+    Background: ${background}
     Constraints: ${constraints}
     
-    CRITICAL INSTRUCTION: Return ONLY valid, raw JSON. 
-    Do NOT use Markdown code blocks. Do NOT include \`\`\`json.
-    
-    Structure the response to match this interface:
+    Return ONLY raw JSON (no markdown, no code blocks) matching this structure:
     {
-      "title": "String (High-Impact Title)",
-      "domain": "String (Field of Study)",
+      "title": "String",
+      "domain": "String",
       "nodes": [
         {
           "id": "1",
           "title": "String",
-          "description": "Specific, actionable explanation.",
+          "description": "Brief description",
           "nodeType": "concept",
-          "category": "Foundation|Core|Specialization",
-          "difficulty": "beginner|intermediate|advanced",
-          "estimatedHours": Number,
+          "category": "Foundation",
+          "difficulty": "beginner",
+          "estimatedHours": 2,
           "prerequisites": [],
-          "learningObjectives": ["Skill 1", "Skill 2"],
-          "keyTopics": ["Topic 1", "Topic 2"],
+          "learningObjectives": ["Objective 1"],
+          "keyTopics": ["Topic 1"],
           "position": { "x": 0, "y": 0 },
           "resources": [
-            {
-              "id": "res-1",
-              "url": "https://example.com", 
-              "title": "Resource Title",
-              "author": "Author Name",
-              "platform": "YouTube|Documentation|Course",
+             {
+              "id": "r1",
+              "title": "Resource Name",
+              "url": "https://example.com",
+              "platform": "YouTube|Web",
               "format": "video|article",
-              "description": "Why this resource rocks",
+              "description": "Brief info",
               "duration": 10,
-              "difficulty": "intermediate",
-              "isFree": true
-            }
+              "difficulty": "beginner",
+              "isFree": true,
+              "author": "Author Name"
+             }
           ]
         }
       ],
-      "edges": [
-        { "id": "e1-2", "source": "1", "target": "2" }
-      ]
+      "edges": []
     }
     
-    LOGIC: 
-    1. Create a "Zero to Hero" arc.
-    2. Minimum 6 nodes.
-    3. Resources must be real and high-quality.`;
+    Provide 5-8 nodes. Ensure logical flow.`;
 
   try {
     const response = await ai.models.generateContent({
       model: modelId,
       contents: prompt,
-      config: { responseMimeType: "application/json" },
+      config: {
+        responseMimeType: "application/json", 
+      },
     });
 
-    // ROBUSTNESS: Handle both function (new SDK) and property (old SDK) access
-    let responseText = "";
-    if (typeof response.text === 'function') {
-        responseText = response.text();
-    } else if (response.text) {
-        responseText = response.text as string;
-    } else {
-        responseText = "";
-    }
-    
-    const cleanedJson = responseText.replace(/```json|```/g, '').trim();
+    // BUILD SAFE: Access text as a property (fixes Red X)
+    const responseText = response.text || ""; 
+
+    // CRASH SAFE: Clean markdown (fixes "Failed to generate")
+    const cleanedJson = responseText.replace(/\`\`\`json|\`\`\`/g, '').trim();
+
     const data = JSON.parse(cleanedJson);
 
-    // AUTO-LAYOUT: Vertical Zig-Zag
+    // LAYOUT SAFE: Keep Zig-Zag (fixes invisible nodes)
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
       position: { 
-        x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -220 : 220), 
-        y: index * 260 
+        x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -200 : 200), 
+        y: index * 250 
       },
       status: index === 0 ? 'available' : (node.prerequisites.length === 0 ? 'available' : 'locked'),
       resources: node.resources || []
@@ -104,18 +91,22 @@ export const generateRoadmap = async (
       domain: data.domain || "Custom Learning Path",
       nodes: nodesWithLayout,
       edges: data.edges || [],
-      progress: { completedNodes: 0, totalNodes: nodesWithLayout.length, percentage: 0 },
+      progress: {
+        completedNodes: 0,
+        totalNodes: nodesWithLayout.length,
+        percentage: 0
+      },
       createdAt: Date.now()
     };
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    throw new Error(error.message || "Unknown error occurred");
+    throw new Error(error.message || "Failed to generate roadmap.");
   }
 };
 
 // --- FEATURE: Daily Creative Briefs (The "Wolf" Grind) ---
 export const generateDailyBrief = async (currentTopic: string, roleGoal: string): Promise<string> => {
-  const modelId = "gemini-2.0-flash-exp"; 
+  const modelId = "gemini-2.5-flash"; 
   const prompt = `You are "The Wolf" - a no-nonsense career coach.
   The user is learning: "${currentTopic}".
   Role Goal: ${roleGoal}.
@@ -133,7 +124,7 @@ export const generateDailyBrief = async (currentTopic: string, roleGoal: string)
 
   try {
     const response = await ai.models.generateContent({ model: modelId, contents: prompt });
-    return typeof response.text === 'function' ? response.text() : (response.text as string);
+    return response.text || "Mission failed to generate. Go build something anyway.";
   } catch (e) {
     return "MISSION: Speed Run \n\n BRIEF: Explain this concept to a 5-year-old in 60 seconds. \n\n WIN CONDITION: You recorded yourself doing it.";
   }
@@ -141,7 +132,7 @@ export const generateDailyBrief = async (currentTopic: string, roleGoal: string)
 
 // --- FEATURE: CV/Resume Generator ---
 export const generateResumePoints = async (completedNodes: string[], targetRole: string): Promise<string[]> => {
-  const modelId = "gemini-2.0-flash-exp";
+  const modelId = "gemini-2.5-flash";
   const prompt = `The user has mastered these concepts: ${completedNodes.join(', ')}.
   They are applying for a ${targetRole} position.
   
@@ -155,8 +146,8 @@ export const generateResumePoints = async (completedNodes: string[], targetRole:
         config: { responseMimeType: "application/json" }
     });
     
-    let text = typeof response.text === 'function' ? response.text() : (response.text as string);
-    text = text.replace(/```json|```/g, '').trim();
+    let text = response.text || "[]";
+    text = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
     return JSON.parse(text);
   } catch (e) {
     return ["Demonstrated continuous learning by mastering modern tech stack foundations."];
