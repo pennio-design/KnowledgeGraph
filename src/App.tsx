@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { generateRoadmap, evolveRoadmap } from './services/geminiService';
+import { generateRoadmap } from './services/geminiService';
 import { Roadmap, RoadmapNode, UserStats, Achievement } from './types';
 import IntakeForm from './components/IntakeForm';
 import RoadmapGraph from './components/RoadmapGraph';
 import ResourcePanel from './components/ResourcePanel';
 import CareerPanel from './components/CareerPanel';
 import { 
-  Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Timer, 
-  Sparkles, CheckCircle, Target, Award, ArrowUpRight, Plus, Trash2, Map, Loader2
+  Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Target, Award, Plus, Trash2, Map, Loader2
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -26,7 +25,6 @@ const App: React.FC = () => {
   const [savedRoadmaps, setSavedRoadmaps] = useState<Roadmap[]>([]);
   const [selectedNode, setSelectedNode] = useState<RoadmapNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isEvolving, setIsEvolving] = useState(false); // NEW: Track evolution state
   const [stats, setStats] = useState<UserStats>({
     totalRoadmaps: 0,
     completedNodes: 0,
@@ -121,19 +119,14 @@ const App: React.FC = () => {
     }
   };
 
-  // --- UPDATED: Adaptive Completion Logic ---
-  const handleMarkNodeComplete = async (feedback?: 'too_easy' | 'too_hard' | 'just_right') => {
+  const handleMarkNodeComplete = () => {
     if (!activeRoadmap || !selectedNode || selectedNode.status === 'completed') return;
-    
-    // 1. Mark Locally Complete
     const updatedRoadmap = { ...activeRoadmap };
     const nodeIndex = updatedRoadmap.nodes.findIndex(n => n.id === selectedNode.id);
-    
     if (nodeIndex !== -1) {
       const node = updatedRoadmap.nodes[nodeIndex];
       node.status = 'completed';
       
-      // Unlock immediate next nodes locally first
       updatedRoadmap.nodes.forEach(n => {
         if (n.status === 'locked') {
           const allPrereqsMet = n.prerequisites.every(pId => 
@@ -143,7 +136,6 @@ const App: React.FC = () => {
         }
       });
 
-      // Update Stats
       const completedCount = updatedRoadmap.nodes.filter(n => n.status === 'completed').length;
       updatedRoadmap.progress = {
         completedNodes: completedCount,
@@ -169,22 +161,11 @@ const App: React.FC = () => {
          };
       });
       
+      unlockAchievement('first_node');
+      if (stats.completedNodes + 1 >= 5) unlockAchievement('master_5');
+      
       updateActiveRoadmapInList(updatedRoadmap);
-      setSelectedNode({ ...node }); // Update panel to show complete state
-
-      // 2. Trigger Evolution if feedback provided
-      if (feedback) {
-        setIsEvolving(true);
-        try {
-            // Call the AI to mutate the remaining path
-            const evolvedMap = await evolveRoadmap(updatedRoadmap, node.title, feedback);
-            updateActiveRoadmapInList(evolvedMap);
-        } catch (e) {
-            console.error("Evolution failed, keeping original path", e);
-        } finally {
-            setIsEvolving(false);
-        }
-      }
+      setSelectedNode({ ...node });
     }
   };
 
@@ -198,76 +179,72 @@ const App: React.FC = () => {
     return [...new Set(titles)];
   };
 
-  const getChartData = () => {
-     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-     const today = new Date();
-     return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(today.getDate() - (6 - i));
-      const dateStr = date.toISOString().split('T')[0];
-      const entry = stats.history.find(h => h.date === dateStr);
-      return { name: days[date.getDay()], hours: entry ? entry.hours : 0 };
-    });
-  };
-
   const getIcon = (name: string) => {
     switch (name) {
       case 'Target': return <Target className="w-5 h-5" />;
       case 'Zap': return <Zap className="w-5 h-5" />;
       case 'Award': return <Award className="w-5 h-5" />;
       case 'Trophy': return <Trophy className="w-5 h-5" />;
-      default: return <Sparkles className="w-5 h-5" />;
+      default: return <Target className="w-5 h-5" />;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-inter">
-      <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-md bg-white/90">
-        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setView('welcome')}>
-          <div className="bg-blue-600 p-2 rounded-xl group-hover:rotate-12 transition-transform shadow-lg shadow-blue-200">
-            <Brain className="w-6 h-6 text-white" />
+    <div className="min-h-screen flex flex-col font-inter bg-slate-50 text-slate-900">
+      {/* HEADER: Sticky, clean, no generic blur */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('welcome')}>
+          <div className="bg-slate-900 p-2 rounded-lg">
+            <Brain className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-black tracking-tight text-slate-900">KnowledgeGraph</span>
+          <span className="text-lg font-bold tracking-tight">KnowledgeGraph</span>
         </div>
-        <nav className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-500">
-          <button onClick={() => setView('dashboard')} className={`hover:text-blue-600 transition-colors flex items-center gap-2 ${view === 'dashboard' ? 'text-blue-600' : ''}`}>
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+          <button onClick={() => setView('dashboard')} className={`hover:text-slate-900 transition-colors flex items-center gap-2 ${view === 'dashboard' ? 'text-slate-900 font-semibold' : ''}`}>
             <LayoutDashboard className="w-4 h-4" /> Dashboard
           </button>
-          <button onClick={() => setView('career')} className={`hover:text-blue-600 transition-colors flex items-center gap-2 ${view === 'career' ? 'text-blue-600' : ''}`}>
+          <button onClick={() => setView('career')} className={`hover:text-slate-900 transition-colors flex items-center gap-2 ${view === 'career' ? 'text-slate-900 font-semibold' : ''}`}>
             <Briefcase className="w-4 h-4" /> Career
           </button>
         </nav>
         <div className="flex items-center gap-4">
-          <button onClick={handleStartIntake} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
-            Start New
+          <button onClick={handleStartIntake} className="bg-slate-900 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-slate-800 transition-colors shadow-sm">
+            Start New Path
           </button>
         </div>
       </header>
 
       <main className="flex-1 relative overflow-hidden flex flex-col">
         {view === 'welcome' && (
-          <div className="max-w-7xl mx-auto px-6 py-12 md:py-24 grid lg:grid-cols-2 gap-16 items-center flex-1">
-             <div className="space-y-8">
-              <h1 className="text-5xl md:text-7xl font-black text-slate-900 leading-[1.1]">
-                Master Anything <br /><span className="text-blue-600">With Precision.</span>
+          <div className="max-w-5xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-12 items-center flex-1">
+             <div className="space-y-6">
+              <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight">
+                Architect your <br /> learning path.
               </h1>
-              <p className="text-xl text-slate-500 leading-relaxed max-w-xl">
-                Answer 3 questions. Get a personalized, adaptive learning roadmap that evolves with you.
+              <p className="text-lg text-slate-600 leading-relaxed max-w-md">
+                No fluff. No random videos. Just a structured, AI-generated curriculum tailored to your exact career goals.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button onClick={handleStartIntake} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2">
-                  Start Learning <ChevronRight className="w-5 h-5" />
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <button onClick={handleStartIntake} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2">
+                  Build Roadmap <ChevronRight className="w-4 h-4" />
                 </button>
-                <button onClick={() => setView('dashboard')} className="px-8 py-4 bg-white border-2 border-slate-100 text-slate-700 rounded-2xl font-bold text-lg hover:border-blue-200">
-                  My Library
+                <button onClick={() => setView('dashboard')} className="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold hover:border-slate-300 transition-colors flex items-center justify-center">
+                  Open Library
                 </button>
               </div>
+            </div>
+            {/* Visual placeholder for graph preview - could be an image or CSS shape */}
+            <div className="hidden lg:block bg-white border border-slate-200 rounded-xl p-6 h-80 shadow-sm relative overflow-hidden">
+                <div className="absolute inset-0 bg-slate-50/50" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">
+                   [Graph Visualization Preview]
+                </div>
             </div>
           </div>
         )}
 
         {view === 'intake' && (
-          <div className="flex-1 bg-slate-50 py-12 px-6 flex items-center justify-center overflow-y-auto">
+          <div className="flex-1 bg-white py-12 px-6 flex items-center justify-center overflow-y-auto">
             <IntakeForm onSubmit={handleGenerate} isLoading={isLoading} />
           </div>
         )}
@@ -279,17 +256,8 @@ const App: React.FC = () => {
         )}
 
         {view === 'roadmap' && activeRoadmap && (
-          <div className="relative w-full h-[calc(100vh-80px)] bg-slate-50">
+          <div className="relative w-full h-[calc(100vh-73px)] bg-slate-50">
             <RoadmapGraph nodes={activeRoadmap.nodes} edges={activeRoadmap.edges} onNodeClick={setSelectedNode} />
-            
-            {/* Evolution Loading Overlay */}
-            {isEvolving && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 bg-slate-900/90 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl animate-in fade-in zoom-in">
-                    <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-                    <span className="font-bold text-sm">Adapting Roadmap...</span>
-                </div>
-            )}
-
             {selectedNode && (
               <ResourcePanel 
                 node={selectedNode} 
@@ -298,16 +266,17 @@ const App: React.FC = () => {
                 onMarkComplete={handleMarkNodeComplete}
               />
             )}
-            <div className="absolute top-6 left-6 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-xl z-10 max-w-xs">
-              <h2 className="text-lg font-bold text-slate-900 mb-1">{activeRoadmap.title}</h2>
-              <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
-                 <span>{activeRoadmap.progress.percentage}% DONE</span>
+            <div className="absolute top-6 left-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm z-10 w-64">
+              <h2 className="text-base font-bold text-slate-900 mb-2 truncate">{activeRoadmap.title}</h2>
+              <div className="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+                 <span>Progress</span>
+                 <span>{activeRoadmap.progress.percentage}%</span>
               </div>
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${activeRoadmap.progress.percentage}%` }} />
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden mb-3">
+                  <div className="h-full bg-slate-900 transition-all duration-500 ease-out" style={{ width: `${activeRoadmap.progress.percentage}%` }} />
               </div>
-              <button onClick={() => setView('dashboard')} className="mt-4 w-full py-2 bg-slate-50 text-[10px] font-bold text-slate-500 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors flex items-center justify-center gap-1">
-                BACK TO LIBRARY
+              <button onClick={() => setView('dashboard')} className="w-full py-2 bg-slate-50 text-xs font-semibold text-slate-600 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
+                Back to Library
               </button>
             </div>
           </div>
@@ -316,17 +285,17 @@ const App: React.FC = () => {
         {view === 'dashboard' && (
           <div className="flex-1 bg-slate-50 p-6 md:p-12 overflow-y-auto">
             <div className="max-w-6xl mx-auto space-y-10">
-              <div className="flex items-end justify-between">
+              <div className="flex items-end justify-between border-b border-slate-200 pb-6">
                 <div>
-                  <h1 className="text-4xl font-black text-slate-900 mb-2">My Library</h1>
-                  <p className="text-slate-500 font-medium">You have {savedRoadmaps.length} active learning paths.</p>
+                  <h1 className="text-3xl font-bold text-slate-900 mb-2">Library</h1>
+                  <p className="text-slate-500">Manage your {savedRoadmaps.length} active projects.</p>
                 </div>
-                <div className="flex gap-4">
-                    <button onClick={() => setView('career')} className="bg-white text-slate-700 border-2 border-slate-100 px-5 py-3 rounded-xl font-bold text-sm hover:border-blue-200 transition-all flex items-center gap-2">
-                        <Briefcase className="w-5 h-5" /> Career Assets
+                <div className="flex gap-3">
+                    <button onClick={() => setView('career')} className="bg-white text-slate-700 border border-slate-200 px-4 py-2.5 rounded-lg font-semibold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" /> Career
                     </button>
-                    <button onClick={handleStartIntake} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                        <Plus className="w-5 h-5" /> New Roadmap
+                    <button onClick={handleStartIntake} className="bg-slate-900 text-white px-4 py-2.5 rounded-lg font-semibold text-sm hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-sm">
+                        <Plus className="w-4 h-4" /> New Path
                     </button>
                 </div>
               </div>
@@ -334,46 +303,47 @@ const App: React.FC = () => {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {savedRoadmaps.length > 0 ? (
                   savedRoadmaps.map(roadmap => (
-                    <div key={roadmap.id} onClick={() => { setActiveRoadmap(roadmap); setView('roadmap'); }} className="group bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden">
+                    <div key={roadmap.id} onClick={() => { setActiveRoadmap(roadmap); setView('roadmap'); }} className="group bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md transition-all cursor-pointer relative">
                       <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-blue-50 rounded-2xl text-blue-600">
-                          <Map className="w-6 h-6" />
+                        <div className="p-2 bg-slate-100 rounded-lg text-slate-700">
+                          <Map className="w-5 h-5" />
                         </div>
-                        <button onClick={(e) => handleDeleteRoadmap(e, roadmap.id)} className="p-2 hover:bg-red-50 hover:text-red-500 rounded-full text-slate-300 transition-colors">
+                        <button onClick={(e) => handleDeleteRoadmap(e, roadmap.id)} className="p-2 hover:bg-red-50 hover:text-red-600 rounded-lg text-slate-400 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-1 line-clamp-1">{roadmap.title}</h3>
-                      <p className="text-sm text-slate-400 font-medium mb-6">{roadmap.domain}</p>
+                      <h3 className="text-lg font-bold text-slate-900 mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors">{roadmap.title}</h3>
+                      <p className="text-sm text-slate-500 mb-6">{roadmap.domain}</p>
                       
                       <div className="space-y-2">
-                        <div className="flex justify-between text-xs font-bold text-slate-400">
-                          <span>Progress</span>
+                        <div className="flex justify-between text-xs font-semibold text-slate-500">
+                          <span>Completion</span>
                           <span>{roadmap.progress.percentage}%</span>
                         </div>
-                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                           <div className="h-full bg-emerald-400 transition-all duration-1000" style={{ width: `${roadmap.progress.percentage}%` }} />
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                           <div className="h-full bg-slate-900 transition-all duration-500 ease-out" style={{ width: `${roadmap.progress.percentage}%` }} />
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="col-span-full py-12 text-center bg-white rounded-[2rem] border border-slate-100 border-dashed">
-                    <p className="text-slate-400 font-medium">No roadmaps yet. Start your first journey!</p>
+                  <div className="col-span-full py-16 text-center bg-white rounded-xl border border-slate-200 border-dashed">
+                    <p className="text-slate-500">No roadmaps initialized.</p>
+                    <button onClick={handleStartIntake} className="mt-4 text-blue-600 font-semibold text-sm hover:underline">Create your first roadmap</button>
                   </div>
                 )}
               </div>
               
-              <div className="mt-12 pt-12 border-t border-slate-200">
-                 <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Stats</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                        <div className="text-4xl font-black text-slate-900 mb-1">{stats.completedNodes}</div>
-                        <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nodes Done</div>
+              <div className="mt-12">
+                 <h2 className="text-xl font-bold text-slate-900 mb-6">Performance</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="text-3xl font-bold text-slate-900 mb-1">{stats.completedNodes}</div>
+                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nodes Completed</div>
                     </div>
-                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                        <div className="text-4xl font-black text-slate-900 mb-1">{stats.currentStreak}</div>
-                        <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">Day Streak</div>
+                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="text-3xl font-bold text-slate-900 mb-1">{stats.currentStreak}</div>
+                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Day Streak</div>
                     </div>
                   </div>
               </div>
