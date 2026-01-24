@@ -164,3 +164,51 @@ export const generateResumePoints = async (completedNodes: string[], targetRole:
     return ["Demonstrated continuous learning by mastering modern tech stack foundations."];
   }
 };
+
+// --- FEATURE: Tutor Mode (Synthesis Engine) ---
+export const generateTutorLesson = async (topic: string): Promise<any> => {
+  const modelId = "gemini-2.5-flash"; 
+  const prompt = `You are an AI Tutor synthesizing information from multiple sources about: "${topic}".
+  
+  Generate a lesson with exactly these 3 distinct sections. 
+  Return ONLY raw JSON.
+
+  Structure:
+  {
+    "academic": {
+      "source": "Documentation / Standard Def",
+      "content": "Formal, precise definition. Mention complexity or standard syntax."
+    },
+    "practical": {
+      "source": "Senior Engineer's Perspective",
+      "content": "How this is actually used in prod. Common pitfalls. When to AVOID it."
+    },
+    "analogy": {
+      "source": "Mental Model",
+      "content": "Explain it like I'm 10 years old using a real-world analogy (e.g., cooking, traffic, building)."
+    },
+    "quiz": [
+      {
+        "question": "A tricky question about ${topic}",
+        "options": ["Wrong 1", "Correct Answer", "Wrong 2"],
+        "answer": 1,
+        "explanation": "Why it is correct."
+      }
+    ]
+  }`;
+
+  try {
+    const response = await ai.models.generateContent({ 
+        model: modelId, 
+        contents: prompt,
+        config: { responseMimeType: "application/json" }
+    });
+    
+    let text = response.text || "{}";
+    text = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(text);
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};
