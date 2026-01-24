@@ -11,7 +11,7 @@ export const generateRoadmap = async (
 ): Promise<Roadmap> => {
   const modelId = "gemini-2.5-flash"; 
 
-  // CHANGED: We now ask for 'searchQuery' instead of specific URLs to prevent 404s.
+  // CHANGED: Added "Search Operator Protocol" to the prompt
   const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
     
     Goal: ${goal}
@@ -39,14 +39,14 @@ export const generateRoadmap = async (
              {
               "id": "r1",
               "title": "Resource Title",
-              "searchQuery": "Exact search term to find the best content",
-              "platform": "YouTube|Google|Documentation",
-              "format": "video|article",
-              "description": "Why this search is valuable",
+              "searchQuery": "ADVANCED_SEARCH_STRING", 
+              "platform": "YouTube|Google|Documentation|Reddit|GitHub",
+              "format": "video|article|pdf|repo",
+              "description": "Why this query finds the gold",
               "duration": 10,
               "difficulty": "beginner",
               "isFree": true,
-              "author": "Best guess author"
+              "author": "Likely Source"
              }
           ]
         }
@@ -54,7 +54,14 @@ export const generateRoadmap = async (
       "edges": []
     }
     
-    Provide 5-8 nodes. Ensure logical flow.`;
+    LOGIC & SEARCH ENGINEERING:
+    1. Provide 5-8 nodes. Ensure logical flow.
+    2. "searchQuery" MUST use advanced operators to find non-obvious content:
+       - For Code: "site:github.com [topic] awesome-list" OR "site:github.com [topic] starter-kit"
+       - For Deep Dives: "filetype:pdf [topic] guide" OR "site:arxiv.org [topic]"
+       - For Real Talk: "site:reddit.com [topic] solved" OR "site:stackoverflow.com [topic] common mistakes"
+       - For Freshness: "[topic] tutorial after:2024"
+    3. Vary the platforms. Don't just use YouTube. Give me PDFs, Repos, and Discussions.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -69,7 +76,7 @@ export const generateRoadmap = async (
     const cleanedJson = responseText.replace(/```json|```/g, '').trim();
     const data = JSON.parse(cleanedJson);
 
-    // LOGIC: Transform AI 'searchQuery' into real, working Search URLs
+    // LAYOUT & URL BUILDER
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
@@ -79,10 +86,12 @@ export const generateRoadmap = async (
       },
       status: index === 0 ? 'available' : (node.prerequisites.length === 0 ? 'available' : 'locked'),
       resources: (node.resources || []).map((res: any) => {
-        // BUILDER: Construct guaranteed URLs
+        // SMART LINK BUILDER
         let finalUrl = "";
         const query = encodeURIComponent(res.searchQuery || res.title);
         
+        // If the AI suggests YouTube, use YouTube search.
+        // Otherwise, trust the Google Search Operators (site:, filetype:, etc.)
         if (res.platform?.toLowerCase().includes('youtube')) {
             finalUrl = `https://www.youtube.com/results?search_query=${query}`;
         } else {
@@ -91,7 +100,7 @@ export const generateRoadmap = async (
 
         return {
             ...res,
-            url: finalUrl // Inject the working URL
+            url: finalUrl
         };
       })
     }));
