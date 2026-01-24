@@ -3,22 +3,22 @@ import { Roadmap } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
+// --- CORE: Roadmap Generation ---
 export const generateRoadmap = async (
   goal: string,
   background: string,
   constraints: string
 ): Promise<Roadmap> => {
-  // FIXED: 'gemini-1.5-flash' was shut down in late 2025.
-  // UPGRADE: 'gemini-2.5-flash' is the new standard production model.
   const modelId = "gemini-2.5-flash"; 
 
+  // CHANGED: We now ask for 'searchQuery' instead of specific URLs to prevent 404s.
   const prompt = `You are an expert curriculum designer. Generate a structured learning roadmap.
     
     Goal: ${goal}
     Background: ${background}
     Constraints: ${constraints}
     
-    Return ONLY raw JSON (no markdown, no code blocks) matching this structure:
+    Return ONLY raw JSON (no markdown) matching this structure:
     {
       "title": "String",
       "domain": "String",
@@ -38,15 +38,15 @@ export const generateRoadmap = async (
           "resources": [
              {
               "id": "r1",
-              "title": "Resource Name",
-              "url": "https://example.com",
-              "platform": "YouTube|Web",
+              "title": "Resource Title",
+              "searchQuery": "Exact search term to find the best content",
+              "platform": "YouTube|Google|Documentation",
               "format": "video|article",
-              "description": "Brief info",
+              "description": "Why this search is valuable",
               "duration": 10,
               "difficulty": "beginner",
               "isFree": true,
-              "author": "Author Name"
+              "author": "Best guess author"
              }
           ]
         }
@@ -65,15 +65,11 @@ export const generateRoadmap = async (
       },
     });
 
-    // BUILD SAFE: Access text as a property (fixes Red X)
     const responseText = response.text || ""; 
-
-    // CRASH SAFE: Clean markdown (fixes "Failed to generate")
-    const cleanedJson = responseText.replace(/\`\`\`json|\`\`\`/g, '').trim();
-
+    const cleanedJson = responseText.replace(/```json|```/g, '').trim();
     const data = JSON.parse(cleanedJson);
 
-    // LAYOUT SAFE: Keep Zig-Zag (fixes invisible nodes)
+    // LOGIC: Transform AI 'searchQuery' into real, working Search URLs
     const nodesWithLayout = data.nodes.map((node: any, index: number) => ({
       ...node,
       id: node.id || `node-${index}`,
@@ -82,7 +78,22 @@ export const generateRoadmap = async (
         y: index * 250 
       },
       status: index === 0 ? 'available' : (node.prerequisites.length === 0 ? 'available' : 'locked'),
-      resources: node.resources || []
+      resources: (node.resources || []).map((res: any) => {
+        // BUILDER: Construct guaranteed URLs
+        let finalUrl = "";
+        const query = encodeURIComponent(res.searchQuery || res.title);
+        
+        if (res.platform?.toLowerCase().includes('youtube')) {
+            finalUrl = `https://www.youtube.com/results?search_query=${query}`;
+        } else {
+            finalUrl = `https://www.google.com/search?q=${query}`;
+        }
+
+        return {
+            ...res,
+            url: finalUrl // Inject the working URL
+        };
+      })
     }));
 
     return {
@@ -104,7 +115,7 @@ export const generateRoadmap = async (
   }
 };
 
-// --- FEATURE: Daily Creative Briefs (The "Wolf" Grind) ---
+// --- FEATURE: Daily Creative Briefs ---
 export const generateDailyBrief = async (currentTopic: string, roleGoal: string): Promise<string> => {
   const modelId = "gemini-2.5-flash"; 
   const prompt = `You are "The Wolf" - a no-nonsense career coach.
@@ -147,82 +158,9 @@ export const generateResumePoints = async (completedNodes: string[], targetRole:
     });
     
     let text = response.text || "[]";
-    text = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    text = text.replace(/```json|```/g, '').trim();
     return JSON.parse(text);
   } catch (e) {
     return ["Demonstrated continuous learning by mastering modern tech stack foundations."];
-  }
-};
-
-// --- FEATURE: Adaptive Evolution Engine ---
-// This function takes the current roadmap and "grows" it based on user performance.
-export const evolveRoadmap = async (
-  currentRoadmap: Roadmap, 
-  completedNodeTitle: string, 
-  feedback: 'too_easy' | 'too_hard' | 'just_right'
-): Promise<Roadmap> => {
-  const modelId = "gemini-2.5-flash"; // 2026 Production Model
-
-  // We send the current structure to the AI and ask it to MUTATE it.
-  const prompt = `ACT AS A DYNAMIC CURRICULUM ARCHITECT.
-  
-  CONTEXT:
-  The user just completed the node: "${completedNodeTitle}".
-  User Feedback: "${feedback}".
-  
-  CURRENT ROADMAP JSON:
-  ${JSON.stringify(currentRoadmap)}
-  
-  INSTRUCTIONS:
-  1. If feedback is "too_easy": Remove the next immediate beginner node and replace it with a more advanced "Deep Dive" node.
-  2. If feedback is "too_hard": Insert a "Remedial/Bridge" node before the next step to explain the basics better.
-  3. If "just_right": Add a "Practical Project" node to reinforce the skill.
-  4. Keep the rest of the roadmap ID and structure intact.
-  
-  RETURN ONLY THE MODIFIED RAW JSON of the entire roadmap object.`;
-
-  try {
-    const response = await ai.models.generateContent({ 
-        model: modelId, 
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
-    });
-    
-    let text = response.text || "";
-    text = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
-    
-    // Parse and re-guarantee layout
-    const data = JSON.parse(text);
-    
-    // Preserve completion status of existing nodes, but layout new ones
-    const evolvedNodes = data.nodes.map((node: any, index: number) => {
-      // Check if this node existed before to preserve its state
-      const existingNode = currentRoadmap.nodes.find(n => n.title === node.title);
-      return {
-        ...node,
-        id: existingNode ? existingNode.id : `node-${Date.now()}-${index}`, // New IDs for new nodes
-        status: existingNode ? existingNode.status : 'locked', // Preserve status
-        // Re-calculate layout to fit new nodes
-        position: { 
-            x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -220 : 220), 
-            y: index * 260 
-        },
-        resources: node.resources || []
-      };
-    });
-
-    return {
-      ...data,
-      nodes: evolvedNodes,
-      // Recalculate progress stats
-      progress: {
-        completedNodes: evolvedNodes.filter((n: any) => n.status === 'completed').length,
-        totalNodes: evolvedNodes.length,
-        percentage: Math.round((evolvedNodes.filter((n: any) => n.status === 'completed').length / evolvedNodes.length) * 100)
-      }
-    };
-  } catch (error) {
-    console.error("Evolution failed:", error);
-    return currentRoadmap; // Fail safe: return original roadmap
   }
 };
