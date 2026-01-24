@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { generateRoadmap } from './services/geminiService';
+import { generateRoadmap, evolveRoadmap } from './services/geminiService';
 import { Roadmap, RoadmapNode, UserStats, Achievement } from './types';
 import IntakeForm from './components/IntakeForm';
 import RoadmapGraph from './components/RoadmapGraph';
@@ -7,7 +7,7 @@ import ResourcePanel from './components/ResourcePanel';
 import CareerPanel from './components/CareerPanel';
 import { 
   Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Timer, 
-  Sparkles, CheckCircle, Target, Award, ArrowUpRight, Plus, Trash2, Map
+  Sparkles, CheckCircle, Target, Award, ArrowUpRight, Plus, Trash2, Map, Loader2
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [savedRoadmaps, setSavedRoadmaps] = useState<Roadmap[]>([]);
   const [selectedNode, setSelectedNode] = useState<RoadmapNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEvolving, setIsEvolving] = useState(false); // NEW: Track evolution state
   const [stats, setStats] = useState<UserStats>({
     totalRoadmaps: 0,
     completedNodes: 0,
@@ -120,14 +121,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleMarkNodeComplete = () => {
+  // --- UPDATED: Adaptive Completion Logic ---
+  const handleMarkNodeComplete = async (feedback?: 'too_easy' | 'too_hard' | 'just_right') => {
     if (!activeRoadmap || !selectedNode || selectedNode.status === 'completed') return;
+    
+    // 1. Mark Locally Complete
     const updatedRoadmap = { ...activeRoadmap };
     const nodeIndex = updatedRoadmap.nodes.findIndex(n => n.id === selectedNode.id);
+    
     if (nodeIndex !== -1) {
       const node = updatedRoadmap.nodes[nodeIndex];
       node.status = 'completed';
       
+      // Unlock immediate next nodes locally first
       updatedRoadmap.nodes.forEach(n => {
         if (n.status === 'locked') {
           const allPrereqsMet = n.prerequisites.every(pId => 
@@ -137,6 +143,7 @@ const App: React.FC = () => {
         }
       });
 
+      // Update Stats
       const completedCount = updatedRoadmap.nodes.filter(n => n.status === 'completed').length;
       updatedRoadmap.progress = {
         completedNodes: completedCount,
@@ -162,11 +169,22 @@ const App: React.FC = () => {
          };
       });
       
-      unlockAchievement('first_node');
-      if (stats.completedNodes + 1 >= 5) unlockAchievement('master_5');
-      
       updateActiveRoadmapInList(updatedRoadmap);
-      setSelectedNode({ ...node });
+      setSelectedNode({ ...node }); // Update panel to show complete state
+
+      // 2. Trigger Evolution if feedback provided
+      if (feedback) {
+        setIsEvolving(true);
+        try {
+            // Call the AI to mutate the remaining path
+            const evolvedMap = await evolveRoadmap(updatedRoadmap, node.title, feedback);
+            updateActiveRoadmapInList(evolvedMap);
+        } catch (e) {
+            console.error("Evolution failed, keeping original path", e);
+        } finally {
+            setIsEvolving(false);
+        }
+      }
     }
   };
 
@@ -234,7 +252,7 @@ const App: React.FC = () => {
                 Master Anything <br /><span className="text-blue-600">With Precision.</span>
               </h1>
               <p className="text-xl text-slate-500 leading-relaxed max-w-xl">
-                Answer 3 questions. Get a personalized learning roadmap.
+                Answer 3 questions. Get a personalized, adaptive learning roadmap that evolves with you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button onClick={handleStartIntake} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2">
@@ -263,6 +281,15 @@ const App: React.FC = () => {
         {view === 'roadmap' && activeRoadmap && (
           <div className="relative w-full h-[calc(100vh-80px)] bg-slate-50">
             <RoadmapGraph nodes={activeRoadmap.nodes} edges={activeRoadmap.edges} onNodeClick={setSelectedNode} />
+            
+            {/* Evolution Loading Overlay */}
+            {isEvolving && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 bg-slate-900/90 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl animate-in fade-in zoom-in">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                    <span className="font-bold text-sm">Adapting Roadmap...</span>
+                </div>
+            )}
+
             {selectedNode && (
               <ResourcePanel 
                 node={selectedNode} 

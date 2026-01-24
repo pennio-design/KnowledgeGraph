@@ -153,3 +153,76 @@ export const generateResumePoints = async (completedNodes: string[], targetRole:
     return ["Demonstrated continuous learning by mastering modern tech stack foundations."];
   }
 };
+
+// --- FEATURE: Adaptive Evolution Engine ---
+// This function takes the current roadmap and "grows" it based on user performance.
+export const evolveRoadmap = async (
+  currentRoadmap: Roadmap, 
+  completedNodeTitle: string, 
+  feedback: 'too_easy' | 'too_hard' | 'just_right'
+): Promise<Roadmap> => {
+  const modelId = "gemini-2.5-flash"; // 2026 Production Model
+
+  // We send the current structure to the AI and ask it to MUTATE it.
+  const prompt = `ACT AS A DYNAMIC CURRICULUM ARCHITECT.
+  
+  CONTEXT:
+  The user just completed the node: "${completedNodeTitle}".
+  User Feedback: "${feedback}".
+  
+  CURRENT ROADMAP JSON:
+  ${JSON.stringify(currentRoadmap)}
+  
+  INSTRUCTIONS:
+  1. If feedback is "too_easy": Remove the next immediate beginner node and replace it with a more advanced "Deep Dive" node.
+  2. If feedback is "too_hard": Insert a "Remedial/Bridge" node before the next step to explain the basics better.
+  3. If "just_right": Add a "Practical Project" node to reinforce the skill.
+  4. Keep the rest of the roadmap ID and structure intact.
+  
+  RETURN ONLY THE MODIFIED RAW JSON of the entire roadmap object.`;
+
+  try {
+    const response = await ai.models.generateContent({ 
+        model: modelId, 
+        contents: prompt,
+        config: { responseMimeType: "application/json" }
+    });
+    
+    let text = response.text || "";
+    text = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    
+    // Parse and re-guarantee layout
+    const data = JSON.parse(text);
+    
+    // Preserve completion status of existing nodes, but layout new ones
+    const evolvedNodes = data.nodes.map((node: any, index: number) => {
+      // Check if this node existed before to preserve its state
+      const existingNode = currentRoadmap.nodes.find(n => n.title === node.title);
+      return {
+        ...node,
+        id: existingNode ? existingNode.id : `node-${Date.now()}-${index}`, // New IDs for new nodes
+        status: existingNode ? existingNode.status : 'locked', // Preserve status
+        // Re-calculate layout to fit new nodes
+        position: { 
+            x: (index % 2 === 0 ? 0 : index % 4 === 1 ? -220 : 220), 
+            y: index * 260 
+        },
+        resources: node.resources || []
+      };
+    });
+
+    return {
+      ...data,
+      nodes: evolvedNodes,
+      // Recalculate progress stats
+      progress: {
+        completedNodes: evolvedNodes.filter((n: any) => n.status === 'completed').length,
+        totalNodes: evolvedNodes.length,
+        percentage: Math.round((evolvedNodes.filter((n: any) => n.status === 'completed').length / evolvedNodes.length) * 100)
+      }
+    };
+  } catch (error) {
+    console.error("Evolution failed:", error);
+    return currentRoadmap; // Fail safe: return original roadmap
+  }
+};
