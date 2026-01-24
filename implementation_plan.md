@@ -78,3 +78,10 @@
     - Create `services/certificateService.ts` to draw the canvas.
     - Add "Claim Certificate" button when progress === 100%.
 
+
+## Phase 8: UI/UX Refinement (The Polish)
+- [ ] **Audit:** Remove all "Sparkles" and decorative emojis from `App.tsx`.
+- [ ] **Standardize:** Replace arbitrary border-radius (`rounded-[2rem]`, `rounded-2xl`) with a strict system (`rounded-lg`, `rounded-xl`).
+- [ ] **Interactions:** Replace "bouncy" animations with cubic-bezier easing curves.
+- [ ] **Loading:** Ensure every async action (generating roadmap, resume) has a visible skeleton or loader state.
+- [ ] **Copy:** Rewrite "Welcome" text to be concrete, not vague.

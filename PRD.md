@@ -85,3 +85,21 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 - **Goal:** Social signaling.
 - **Trigger:** 100% Roadmap Completion.
 - **Output:** A dynamically generated PDF with a unique hash (for verification).
+## 4. Design System & Interaction Guidelines (The "Anti-Slop" Protocol)
+**Core Principle:** Consistency > Vibes. If it doesn't serve a user function, kill it.
+
+### 4.1 Visual Hierarchy
+- **Typography:** Use a strict scale. Headings (Bold/Black), Body (Regular/Medium). No "Thin" weights.
+- **Color:** No decorative purple/blue gradients. Use solid colors or functional subtle backgrounds (slate-50).
+- **Shadows:** Remove colored shadows (e.g., `shadow-blue-200`). Use standard `shadow-sm` or `shadow-md`.
+
+### 4.2 Components & Layout
+- **Border Radius:** Define 2 levels only:
+  - Level 1 (Buttons/Inputs): `rounded-lg`
+  - Level 2 (Cards/Containers): `rounded-xl`
+- **Hovers:** No massive movements (e.g., `translate-y-4`). Limit lift to 1-2px. Border color changes are preferred over movement.
+
+### 4.3 Copywriting & Content
+- **Banned Phrases:** "Unlock your potential," "Dive in," "Limitless."
+- **Required Tone:** Direct, functional, and "Wolf-like" (Action-oriented).
+- **Icons:** Proportional sizing. No floating/decorative icons in headers.
