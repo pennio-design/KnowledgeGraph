@@ -1,26 +1,23 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import ReactFlow, { 
   Node, Edge, Background, Controls, Handle, Position, NodeProps
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { UnifiedRoadmap, UnifiedNode } from '../types';
-import { Sparkles, AlertCircle, layers, ArrowUpRight } from 'lucide-react';
+import { Sparkles, AlertCircle, ArrowUpRight } from 'lucide-react';
 
-// --- CUSTOM NODE: The "God Mode" Node ---
 const UnifiedNodeComponent = ({ data }: NodeProps<UnifiedNode>) => {
-  // Visual Intelligence Logic
-  const size = 100 + (data.globalPriorityScore || 0) * 1.5; // Bigger score = Bigger node
+  const size = 100 + (data.globalPriorityScore || 0) * 1.5;
   const isBottleneck = data.isBottleneck;
   
-  // Color Coding based on Role
   let bgClass = "bg-white border-slate-200";
   let textClass = "text-slate-900";
   
   if (data.globalPriorityScore > 80) {
-    bgClass = "bg-amber-50 border-amber-200 shadow-amber-100"; // Gold = High Leverage
+    bgClass = "bg-amber-50 border-amber-200 shadow-amber-100";
     textClass = "text-amber-900";
   } else if (data.synergyCount > 1) {
-    bgClass = "bg-blue-50 border-blue-200 shadow-blue-100"; // Blue = Synergistic/Foundation
+    bgClass = "bg-blue-50 border-blue-200 shadow-blue-100";
     textClass = "text-blue-900";
   }
 
@@ -30,27 +27,22 @@ const UnifiedNodeComponent = ({ data }: NodeProps<UnifiedNode>) => {
       className={`rounded-full flex flex-col items-center justify-center text-center p-4 border-4 shadow-xl transition-all duration-500 relative ${bgClass} ${isBottleneck ? 'animate-pulse ring-4 ring-red-100' : ''}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
-      
       {isBottleneck && (
         <div className="absolute -top-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm animate-bounce">
           <AlertCircle className="w-3 h-3" /> BOTTLENECK
         </div>
       )}
-
       {data.globalPriorityScore > 85 && (
         <div className="absolute -top-3 bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
           <Sparkles className="w-3 h-3" /> TOP 20%
         </div>
       )}
-      
       <div className={`font-black leading-tight ${size > 150 ? 'text-lg' : 'text-xs'} ${textClass}`}>
         {data.title}
       </div>
-      
       <div className="mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
         {data.synergyCount} Goals
       </div>
-
       <Handle type="source" position={Position.Bottom} className="!bg-slate-400" />
     </div>
   );
@@ -64,7 +56,6 @@ interface UnifiedGraphViewProps {
 }
 
 const UnifiedGraphView: React.FC<UnifiedGraphViewProps> = ({ roadmap, onClose }) => {
-  // Convert our UnifiedNodes to React Flow format
   const initialNodes: Node[] = roadmap.nodes.map(n => ({
     id: n.id,
     type: 'unified',
@@ -82,7 +73,6 @@ const UnifiedGraphView: React.FC<UnifiedGraphViewProps> = ({ roadmap, onClose })
 
   return (
     <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col animate-in fade-in duration-300">
-      {/* HUD HEADER */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
         <div>
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
@@ -100,7 +90,6 @@ const UnifiedGraphView: React.FC<UnifiedGraphViewProps> = ({ roadmap, onClose })
         </button>
       </div>
 
-      {/* GRAPH CANVAS */}
       <div className="flex-1 w-full h-full bg-slate-100">
         <ReactFlow
           nodes={initialNodes}
@@ -115,7 +104,6 @@ const UnifiedGraphView: React.FC<UnifiedGraphViewProps> = ({ roadmap, onClose })
         </ReactFlow>
       </div>
 
-      {/* INTELLIGENCE FOOTER */}
       <div className="bg-white border-t border-slate-200 p-6 grid grid-cols-1 md:grid-cols-3 gap-6 z-10">
          <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-50 rounded-xl text-amber-600">
