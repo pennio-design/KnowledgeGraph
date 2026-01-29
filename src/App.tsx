@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { generateRoadmap } from './services/geminiService';
-import { Roadmap, RoadmapNode, UserStats, Achievement } from './types';
+import { generateRoadmap, synthesizeRoadmaps } from './services/geminiService';
+import { Roadmap, RoadmapNode, UserStats, Achievement, UnifiedRoadmap } from './types';
 import IntakeForm from './components/IntakeForm';
 import RoadmapGraph from './components/RoadmapGraph';
 import ResourcePanel from './components/ResourcePanel';
 import CareerPanel from './components/CareerPanel';
+import UnifiedGraphView from './components/UnifiedGraphView';
 import { 
-  Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Target, Award, Plus, Trash2, Map, Loader2
+  Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Target, Award, Plus, Trash2, Map, Loader2, Network
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -20,11 +21,14 @@ const INITIAL_ACHIEVEMENTS: Achievement[] = [
 const STORAGE_KEY = 'knowledge_graph_data';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'welcome' | 'intake' | 'roadmap' | 'dashboard' | 'career'>('welcome');
+  const [view, setView] = useState<'welcome' | 'intake' | 'roadmap' | 'dashboard' | 'career' | 'unified'>('welcome');
   const [activeRoadmap, setActiveRoadmap] = useState<Roadmap | null>(null);
+  const [unifiedRoadmap, setUnifiedRoadmap] = useState<UnifiedRoadmap | null>(null);
   const [savedRoadmaps, setSavedRoadmaps] = useState<Roadmap[]>([]);
   const [selectedNode, setSelectedNode] = useState<RoadmapNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  
   const [stats, setStats] = useState<UserStats>({
     totalRoadmaps: 0,
     completedNodes: 0,
@@ -86,6 +90,23 @@ const App: React.FC = () => {
       alert(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleSynthesize = async () => {
+    if (savedRoadmaps.length < 2) {
+      alert("You need at least 2 roadmaps to synthesize a Unified Graph.");
+      return;
+    }
+    setIsSynthesizing(true);
+    try {
+      const unified = await synthesizeRoadmaps(savedRoadmaps);
+      setUnifiedRoadmap(unified);
+      setView('unified');
+    } catch (error) {
+      alert("Failed to synthesize. Try again.");
+    } finally {
+      setIsSynthesizing(false);
     }
   };
 
@@ -179,19 +200,8 @@ const App: React.FC = () => {
     return [...new Set(titles)];
   };
 
-  const getIcon = (name: string) => {
-    switch (name) {
-      case 'Target': return <Target className="w-5 h-5" />;
-      case 'Zap': return <Zap className="w-5 h-5" />;
-      case 'Award': return <Award className="w-5 h-5" />;
-      case 'Trophy': return <Trophy className="w-5 h-5" />;
-      default: return <Target className="w-5 h-5" />;
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col font-inter bg-slate-50 text-slate-900">
-      {/* HEADER: Sticky, clean, no generic blur */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('welcome')}>
           <div className="bg-slate-900 p-2 rounded-lg">
@@ -233,7 +243,6 @@ const App: React.FC = () => {
                 </button>
               </div>
             </div>
-            {/* Visual placeholder for graph preview - could be an image or CSS shape */}
             <div className="hidden lg:block bg-white border border-slate-200 rounded-xl p-6 h-80 shadow-sm relative overflow-hidden">
                 <div className="absolute inset-0 bg-slate-50/50" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">
@@ -253,6 +262,10 @@ const App: React.FC = () => {
           <div className="flex-1 bg-slate-50 overflow-y-auto">
             <CareerPanel completedNodes={getAllCompletedNodes()} onBack={() => setView('dashboard')} />
           </div>
+        )}
+        
+        {view === 'unified' && unifiedRoadmap && (
+           <UnifiedGraphView roadmap={unifiedRoadmap} onClose={() => setView('dashboard')} />
         )}
 
         {view === 'roadmap' && activeRoadmap && (
@@ -291,6 +304,15 @@ const App: React.FC = () => {
                   <p className="text-slate-500">Manage your {savedRoadmaps.length} active projects.</p>
                 </div>
                 <div className="flex gap-3">
+                    <button 
+                      onClick={handleSynthesize}
+                      disabled={isSynthesizing || savedRoadmaps.length < 2}
+                      className="bg-purple-600 text-white px-4 py-2.5 rounded-lg font-semibold text-sm hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSynthesizing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Network className="w-4 h-4" />}
+                        {isSynthesizing ? 'Synthesizing...' : 'God Mode'}
+                    </button>
+                    
                     <button onClick={() => setView('career')} className="bg-white text-slate-700 border border-slate-200 px-4 py-2.5 rounded-lg font-semibold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2">
                         <Briefcase className="w-4 h-4" /> Career
                     </button>
