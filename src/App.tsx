@@ -6,8 +6,9 @@ import RoadmapGraph from './components/RoadmapGraph';
 import ResourcePanel from './components/ResourcePanel';
 import CareerPanel from './components/CareerPanel';
 import UnifiedGraphView from './components/UnifiedGraphView';
+import CertificateView from './components/CertificateView';
 import { 
-  Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Target, Award, Plus, Trash2, Map, Loader2, Network
+  Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Target, Award, Plus, Trash2, Map, Loader2, Network, Medal
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [unifiedRoadmap, setUnifiedRoadmap] = useState<UnifiedRoadmap | null>(null);
   const [savedRoadmaps, setSavedRoadmaps] = useState<Roadmap[]>([]);
   const [selectedNode, setSelectedNode] = useState<RoadmapNode | null>(null);
+  const [showCertificate, setShowCertificate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   
@@ -267,6 +269,10 @@ const App: React.FC = () => {
         {view === 'unified' && unifiedRoadmap && (
            <UnifiedGraphView roadmap={unifiedRoadmap} onClose={() => setView('dashboard')} />
         )}
+        
+        {showCertificate && activeRoadmap && (
+           <CertificateView roadmap={activeRoadmap} onClose={() => setShowCertificate(false)} />
+        )}
 
         {view === 'roadmap' && activeRoadmap && (
           <div className="relative w-full h-[calc(100vh-73px)] bg-slate-50">
@@ -279,15 +285,27 @@ const App: React.FC = () => {
                 onMarkComplete={handleMarkNodeComplete}
               />
             )}
-            <div className="absolute top-6 left-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm z-10 w-64">
-              <h2 className="text-base font-bold text-slate-900 mb-2 truncate">{activeRoadmap.title}</h2>
-              <div className="flex justify-between text-xs font-semibold text-slate-500 mb-1">
-                 <span>Progress</span>
-                 <span>{activeRoadmap.progress.percentage}%</span>
+            <div className="absolute top-6 left-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm z-10 w-64 space-y-3">
+              <div>
+                 <h2 className="text-base font-bold text-slate-900 mb-2 truncate">{activeRoadmap.title}</h2>
+                 <div className="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+                    <span>Progress</span>
+                    <span>{activeRoadmap.progress.percentage}%</span>
+                 </div>
+                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                     <div className="h-full bg-slate-900 transition-all duration-500 ease-out" style={{ width: `${activeRoadmap.progress.percentage}%` }} />
+                 </div>
               </div>
-              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden mb-3">
-                  <div className="h-full bg-slate-900 transition-all duration-500 ease-out" style={{ width: `${activeRoadmap.progress.percentage}%` }} />
-              </div>
+              
+              {activeRoadmap.progress.percentage === 100 && (
+                <button 
+                  onClick={() => setShowCertificate(true)}
+                  className="w-full py-2 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm flex items-center justify-center gap-1 animate-pulse"
+                >
+                  <Medal className="w-3 h-3" /> Claim Certificate
+                </button>
+              )}
+              
               <button onClick={() => setView('dashboard')} className="w-full py-2 bg-slate-50 text-xs font-semibold text-slate-600 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
                 Back to Library
               </button>
