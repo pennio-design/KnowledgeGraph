@@ -40,7 +40,6 @@ const App: React.FC = () => {
     achievements: INITIAL_ACHIEVEMENTS
   });
 
-  // Load data
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -59,7 +58,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save data
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ stats, savedRoadmaps }));
   }, [stats, savedRoadmaps]);
@@ -327,7 +325,6 @@ const App: React.FC = () => {
           <div className="flex-1 bg-slate-50 p-6 md:p-12 overflow-y-auto">
             <div className="max-w-6xl mx-auto space-y-10">
               
-              {/* DAILY WOLF NOTIFICATION */}
               <DailyWolfCard 
                 roadmaps={savedRoadmaps} 
                 unified={unifiedRoadmap} 
