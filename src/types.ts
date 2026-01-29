@@ -1,36 +1,32 @@
-
-export type ResourceFormat = 'video' | 'article' | 'interactive' | 'documentation';
-
 export interface Resource {
   id: string;
-  url: string;
   title: string;
-  author: string;
+  url: string;
   platform: string;
-  format: ResourceFormat;
+  type?: 'video' | 'article' | 'documentation' | 'course'; // Legacy support
+  format: string; // 'video' | 'article' | 'pdf' | 'repo'
   description: string;
-  duration?: number;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  isFree: boolean;
-  completed?: boolean;
+  duration: number;
+  difficulty: string;
+  completed: boolean;
+  searchQuery?: string;
+  isFree?: boolean;
+  author?: string;
 }
-
-export type NodeStatus = 'locked' | 'available' | 'in_progress' | 'completed';
-export type NodeType = 'concept' | 'milestone' | 'optional';
 
 export interface RoadmapNode {
   id: string;
   title: string;
   description: string;
-  nodeType: NodeType;
+  nodeType: string;
   category: string;
   difficulty: string;
   estimatedHours: number;
   prerequisites: string[];
   learningObjectives: string[];
   keyTopics: string[];
-  status: NodeStatus;
   resources: Resource[];
+  status: 'locked' | 'available' | 'completed';
   position: { x: number; y: number };
 }
 
@@ -40,24 +36,20 @@ export interface RoadmapEdge {
   target: string;
 }
 
+export interface Progress {
+  completedNodes: number;
+  totalNodes: number;
+  percentage: number;
+}
+
 export interface Roadmap {
   id: string;
   title: string;
   domain: string;
   nodes: RoadmapNode[];
   edges: RoadmapEdge[];
-  progress: {
-    completedNodes: number;
-    totalNodes: number;
-    percentage: number;
-  };
+  progress: Progress;
   createdAt: number;
-}
-
-export interface ActivityLog {
-  date: string; // YYYY-MM-DD
-  hours: number;
-  nodesCompleted: number;
 }
 
 export interface Achievement {
@@ -74,24 +66,24 @@ export interface UserStats {
   completedNodes: number;
   currentStreak: number;
   totalHours: number;
-  history: ActivityLog[];
+  history: { date: string; hours: number; nodesCompleted: number }[];
   achievements: Achievement[];
 }
 
-// --- META-LEARNING TYPES ---
+// --- META-LEARNING / GOD MODE TYPES ---
 
 export interface UnifiedNode extends RoadmapNode {
-  originRoadmapIds: string[]; // Which roadmaps does this belong to?
-  globalPriorityScore: number; // 0-100 (Calculated via Pareto algo)
-  synergyCount: number; // How many diverse domains does this unlock?
-  isBottleneck: boolean; // Does this block >2 other high-priority nodes?
+  originRoadmapIds: string[]; 
+  globalPriorityScore: number; 
+  synergyCount: number; 
+  isBottleneck: boolean; 
 }
 
 export interface UnifiedRoadmap {
   id: string;
   nodes: UnifiedNode[];
-  edges: RoadmapEdge[]; // Consolidated edges
-  totalMastery: number; // Global percentage
-  goals: string[]; // List of all combined goals (e.g., "React Dev" + "UI Designer")
+  edges: RoadmapEdge[];
+  totalMastery: number;
+  goals: string[];
   generatedAt: number;
 }
