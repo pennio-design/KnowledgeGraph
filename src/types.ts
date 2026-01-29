@@ -1,10 +1,13 @@
+// 1. ADDED: Explicit export for NodeStatus to fix build error in RoadmapGraph.tsx
+export type NodeStatus = 'locked' | 'available' | 'completed';
+
 export interface Resource {
   id: string;
   title: string;
   url: string;
   platform: string;
-  type?: 'video' | 'article' | 'documentation' | 'course'; // Legacy support
-  format: string; // 'video' | 'article' | 'pdf' | 'repo'
+  type?: 'video' | 'article' | 'documentation' | 'course'; 
+  format: string; 
   description: string;
   duration: number;
   difficulty: string;
@@ -26,7 +29,7 @@ export interface RoadmapNode {
   learningObjectives: string[];
   keyTopics: string[];
   resources: Resource[];
-  status: 'locked' | 'available' | 'completed';
+  status: NodeStatus; // Updated to use the exported type
   position: { x: number; y: number };
 }
 
@@ -69,8 +72,6 @@ export interface UserStats {
   history: { date: string; hours: number; nodesCompleted: number }[];
   achievements: Achievement[];
 }
-
-// --- META-LEARNING / GOD MODE TYPES ---
 
 export interface UnifiedNode extends RoadmapNode {
   originRoadmapIds: string[]; 
