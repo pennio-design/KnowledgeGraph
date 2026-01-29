@@ -7,10 +7,10 @@ import ResourcePanel from './components/ResourcePanel';
 import CareerPanel from './components/CareerPanel';
 import UnifiedGraphView from './components/UnifiedGraphView';
 import CertificateView from './components/CertificateView';
+import DailyWolfCard from './components/DailyWolfCard';
 import { 
   Brain, LayoutDashboard, Briefcase, ChevronRight, Zap, Trophy, Target, Award, Plus, Trash2, Map, Loader2, Network, Medal
 } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const INITIAL_ACHIEVEMENTS: Achievement[] = [
   { id: 'first_roadmap', title: 'The Architect', description: 'Generated your first learning roadmap', icon: 'Target', unlocked: false },
@@ -202,6 +202,16 @@ const App: React.FC = () => {
     return [...new Set(titles)];
   };
 
+  const handleOpenNodeFromWolf = (roadmapId: string, nodeId: string) => {
+    const targetMap = savedRoadmaps.find(r => r.id === roadmapId);
+    if (targetMap) {
+      setActiveRoadmap(targetMap);
+      const targetNode = targetMap.nodes.find(n => n.id === nodeId);
+      setSelectedNode(targetNode || null);
+      setView('roadmap');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-inter bg-slate-50 text-slate-900">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
@@ -316,6 +326,14 @@ const App: React.FC = () => {
         {view === 'dashboard' && (
           <div className="flex-1 bg-slate-50 p-6 md:p-12 overflow-y-auto">
             <div className="max-w-6xl mx-auto space-y-10">
+              
+              {/* DAILY WOLF NOTIFICATION */}
+              <DailyWolfCard 
+                roadmaps={savedRoadmaps} 
+                unified={unifiedRoadmap} 
+                onOpenNode={handleOpenNodeFromWolf} 
+              />
+
               <div className="flex items-end justify-between border-b border-slate-200 pb-6">
                 <div>
                   <h1 className="text-3xl font-bold text-slate-900 mb-2">Library</h1>
