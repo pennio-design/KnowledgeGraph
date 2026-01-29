@@ -85,3 +85,20 @@
 - [ ] **Interactions:** Replace "bouncy" animations with cubic-bezier easing curves.
 - [ ] **Loading:** Ensure every async action (generating roadmap, resume) has a visible skeleton or loader state.
 - [ ] **Copy:** Rewrite "Welcome" text to be concrete, not vague.
+
+## Phase 9: The Unified Brain (Meta-Learning)
+
+### Week 1: The Synthesis Engine
+- [ ] **Data Structure:** Define `UnifiedNode` type (includes `weight`, `originCount`).
+- [ ] **AI Service:** Implement `geminiService.synthesizeRoadmaps(roadmaps[])`.
+    - Prompt: "Take these 3 JSON roadmaps. Merge duplicates. Return a single graph."
+- [ ] **State Management:** Add `unifiedRoadmap` to `App.tsx` state.
+
+### Week 2: The "God Mode" UI
+- [ ] **Visualization:** Create `UnifiedGraphView.tsx` (supports node sizing by weight).
+- [ ] **Dashboard Integration:** Add "View Unified Map" button to the Dashboard header.
+- [ ] **Filtering:** Add toggles: "Show only high-leverage nodes."
+
+### Week 3: Intelligence & Prompts
+- [ ] **Recommender:** Logic to find the "Highest Impact Next Step" (Pareto Optimization).
+- [ ] **Notifications:** "Daily Wolf" prompt based on the *Unified* graph, not just one roadmap.

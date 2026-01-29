@@ -77,3 +77,21 @@ export interface UserStats {
   history: ActivityLog[];
   achievements: Achievement[];
 }
+
+// --- META-LEARNING TYPES ---
+
+export interface UnifiedNode extends RoadmapNode {
+  originRoadmapIds: string[]; // Which roadmaps does this belong to?
+  globalPriorityScore: number; // 0-100 (Calculated via Pareto algo)
+  synergyCount: number; // How many diverse domains does this unlock?
+  isBottleneck: boolean; // Does this block >2 other high-priority nodes?
+}
+
+export interface UnifiedRoadmap {
+  id: string;
+  nodes: UnifiedNode[];
+  edges: RoadmapEdge[]; // Consolidated edges
+  totalMastery: number; // Global percentage
+  goals: string[]; // List of all combined goals (e.g., "React Dev" + "UI Designer")
+  generatedAt: number;
+}

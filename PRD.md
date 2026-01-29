@@ -103,3 +103,25 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 - **Banned Phrases:** "Unlock your potential," "Dive in," "Limitless."
 - **Required Tone:** Direct, functional, and "Wolf-like" (Action-oriented).
 - **Icons:** Proportional sizing. No floating/decorative icons in headers.
+
+## 5. Meta-Learning Intelligence (The "God Mode" Layer)
+**Goal:** Synthesize multiple user roadmaps into a single, optimized "Life Curriculum."
+
+### 5.1 The Synthesizer Engine
+- **Input:** All local `savedRoadmaps`.
+- **Process:** 1. **Node Normalization:** AI maps "Intro to React" and "React Basics" to a single node: "React Fundamentals".
+  2. **Scoring:** Calculates `Priority = (Frequency * 0.4) + (UnlockPotential * 0.6)`.
+- **Output:** A `UnifiedRoadmap` object with a `nodes` array containing `originRoadmapIds`.
+
+### 5.2 The Unified Visualization
+- **Layout:** A single dependency tree showing the user's entire knowledge universe.
+- **Visuals:**
+  - **Size:** Nodes appearing in multiple roadmaps are physically larger.
+  - **Glow:** "Bottleneck Nodes" (prerequisites for multiple goals) pulse.
+- **Modes:**
+  - **Sprint:** Show critical path only.
+  - **Polymath:** Show cross-domain connections.
+
+### 5.3 Context-Aware Dashboard
+- **Prompt:** "You are blocking 3 goals by ignoring 'Linear Algebra'. Do it today."
+- **Gamification:** "Polymath" badge for connecting disparate domains (e.g., Coding + Biology).
