@@ -1,60 +1,48 @@
-import React, { useCallback } from 'react';
-import ReactFlow, { 
-  Node, Edge, Background, Controls, Handle, Position, NodeProps,
-  useNodesState, useEdgesState
-} from 'reactflow';
+import React, { useMemo } from 'react';
+import ReactFlow, { Node, Edge, Background, Controls, Handle, Position, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { RoadmapNode, RoadmapEdge } from '../types';
-import { Lock, CheckCircle, PlayCircle, BookOpen } from 'lucide-react';
+import { Lock, CheckCircle, PlayCircle } from 'lucide-react';
 
-// --- CUSTOM NODE COMPONENT ---
-const CustomNode = ({ data }: NodeProps<RoadmapNode>) => {
-  // Determine styling based on strict status types: 'locked' | 'available' | 'completed'
-  let bgClass = 'bg-white border-slate-200';
-  let icon = <BookOpen className="w-4 h-4 text-slate-400" />;
-  let opacity = 'opacity-100';
+type NodeData = RoadmapNode & { selected: boolean };
+
+const DIFFICULTY_COLOR: Record<string, string> = {
+  beginner: 'text-emerald-600',
+  intermediate: 'text-amber-600',
+  advanced: 'text-red-600',
+};
+
+const CustomNode = ({ data }: NodeProps<NodeData>) => {
+  let style = 'bg-white border-blue-400 shadow-md';
+  let icon = <PlayCircle className="w-4 h-4 text-blue-500" aria-hidden />;
+  const label = { locked: 'Locked', available: 'Available', completed: 'Completed' }[data.status];
 
   if (data.status === 'locked') {
-    bgClass = 'bg-slate-100 border-slate-200';
-    icon = <Lock className="w-4 h-4 text-slate-400" />;
-    opacity = 'opacity-60 grayscale';
+    style = 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed';
+    icon = <Lock className="w-4 h-4 text-slate-400" aria-hidden />;
   } else if (data.status === 'completed') {
-    bgClass = 'bg-emerald-50 border-emerald-200 shadow-sm';
-    icon = <CheckCircle className="w-4 h-4 text-emerald-500" />;
-  } else if (data.status === 'available') {
-    // This represents "In Progress" or "Next Up"
-    bgClass = 'bg-white border-blue-400 shadow-md shadow-blue-100 ring-2 ring-blue-50';
-    icon = <PlayCircle className="w-4 h-4 text-blue-500" />;
+    style = 'bg-emerald-50 border-emerald-200 shadow-sm';
+    icon = <CheckCircle className="w-4 h-4 text-emerald-600" aria-hidden />;
   }
 
   return (
-    <div className={`px-4 py-3 rounded-xl border-2 w-[220px] transition-all duration-300 ${bgClass} ${opacity}`}>
-      <Handle type="target" position={Position.Top} className="!bg-slate-300 !w-3 !h-3" />
-      
+    <div
+      className={`px-4 py-3 rounded-xl border-2 w-[220px] transition-colors duration-200 ${style} ${data.selected ? 'ring-2 ring-slate-900' : ''}`}
+      aria-label={`${data.title}, ${label}`}
+    >
+      <Handle type="target" position={Position.Top} />
       <div className="flex items-start gap-3">
         <div className="mt-0.5">{icon}</div>
-        <div className="flex-1">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
-            {data.category}
-          </div>
-          <div className="text-xs font-bold text-slate-900 leading-tight">
-            {data.title}
-          </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">{data.category}</div>
+          <div className="text-xs font-bold text-slate-900 leading-tight">{data.title}</div>
           <div className="mt-2 flex items-center justify-between">
-             <span className="text-[9px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
-               {data.estimatedHours}h
-             </span>
-             <span className={`text-[9px] font-bold capitalize ${
-               data.difficulty === 'beginner' ? 'text-emerald-500' : 
-               data.difficulty === 'intermediate' ? 'text-amber-500' : 'text-red-500'
-             }`}>
-               {data.difficulty}
-             </span>
+            <span className="text-[10px] font-medium bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{data.estimatedHours}h</span>
+            <span className={`text-[10px] font-bold capitalize ${DIFFICULTY_COLOR[data.difficulty] ?? 'text-slate-500'}`}>{data.difficulty}</span>
           </div>
         </div>
       </div>
-
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-300 !w-3 !h-3" />
+      <Handle type="source" position={Position.Bottom} />
     </div>
   );
 };
@@ -64,48 +52,42 @@ const nodeTypes = { concept: CustomNode };
 interface RoadmapGraphProps {
   nodes: RoadmapNode[];
   edges: RoadmapEdge[];
+  selectedId: string | null;
   onNodeClick: (node: RoadmapNode) => void;
 }
 
-const RoadmapGraph: React.FC<RoadmapGraphProps> = ({ nodes, edges, onNodeClick }) => {
-  // Convert our data types to React Flow types
-  const initialNodes: Node[] = nodes.map(n => ({
+const RoadmapGraph: React.FC<RoadmapGraphProps> = ({ nodes, edges, selectedId, onNodeClick }) => {
+  const flowNodes: Node<NodeData>[] = useMemo(() => nodes.map(n => ({
     id: n.id,
-    type: 'concept', // Must match nodeTypes key
+    type: 'concept',
     position: n.position,
-    data: n,
-    draggable: false, // Keep layout static for stability
-  }));
+    data: { ...n, selected: n.id === selectedId },
+    draggable: false,
+    connectable: false,
+  })), [nodes, selectedId]);
 
-  const initialEdges: Edge[] = edges.map(e => ({
+  const flowEdges: Edge[] = useMemo(() => edges.map(e => ({
     id: e.id,
     source: e.source,
     target: e.target,
-    animated: true,
-    style: { stroke: '#cbd5e1', strokeWidth: 2 },
-  }));
-
-  const handleNodeClick = (_: React.MouseEvent, node: Node) => {
-    // Only allow clicking available or completed nodes
-    if (node.data.status !== 'locked') {
-      onNodeClick(node.data as RoadmapNode);
-    }
-  };
+    style: { stroke: '#94a3b8', strokeWidth: 2 },
+  })), [edges]);
 
   return (
-    <div className="w-full h-full bg-slate-50">
+    <div className="absolute inset-0 bg-slate-50">
       <ReactFlow
-        nodes={initialNodes}
-        edges={initialEdges}
+        nodes={flowNodes}
+        edges={flowEdges}
         nodeTypes={nodeTypes}
-        onNodeClick={handleNodeClick}
+        onNodeClick={(_, node) => { if (node.data.status !== 'locked') onNodeClick(node.data); }}
+        nodesConnectable={false}
         fitView
         minZoom={0.2}
         maxZoom={1.5}
         attributionPosition="bottom-right"
       >
         <Background color="#e2e8f0" gap={24} size={1} />
-        <Controls className="!bg-white !border-slate-200 !shadow-lg !rounded-xl !m-4" />
+        <Controls showInteractive={false} />
       </ReactFlow>
     </div>
   );
