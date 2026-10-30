@@ -1,20 +1,35 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# KnowledgeGraph
 
-# Run and deploy your AI Studio app
+Answer three questions, get a dependency-ordered learning roadmap with curated free resources, track progress, and turn finished roadmaps into a certificate and honest resume bullets.
 
-This contains everything you need to run your app locally.
+Everything runs in the browser. There is no backend: data lives in `localStorage` and AI calls go straight to Gemini with the **user's own API key**.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1Wi9X25tVK0dOfM3PzgroL4BRaIZfJyzq
+## Run locally
 
-## Run Locally
+```bash
+npm install
+npm run dev
+```
 
-**Prerequisites:**  Node.js
+Open the app, click the key icon, and paste a free key from [Google AI Studio](https://aistudio.google.com/apikey).
+For local development only you can instead put `VITE_GEMINI_API_KEY=...` in `.env.local` (see `.env.example`).
 
+## Scripts
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run typecheck` | Strict TypeScript check |
+| `npm test` | Unit tests (graph, stats logic) |
+| `npm run build` | Typecheck + production build |
+
+## Layout
+
+```
+src/lib/graph.ts       validate AI output, derive edges, layout, unlock/complete logic
+src/lib/stats.ts       streaks, achievements
+src/lib/storage.ts     versioned persistence, API key, daily brief cache
+src/services/          Gemini client (retries, validation, prompts)
+src/components/        UI
+docs: PRD.md, implementation_plan.md, DEPLOYMENT_GUIDE.md, AUDIT.md
+```

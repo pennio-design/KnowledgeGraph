@@ -28,11 +28,11 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 6. **User Dashboard:** Analytics and streak tracking for motivation.
 
 ## Technical Architecture
-- **Frontend:** Next.js / React with Tailwind CSS.
-- **Graph Engine:** React Flow.
-- **Intelligence:** Google Gemini API (gemini-3-flash-preview).
+- **Frontend:** React 19 + Vite + Tailwind CSS (static site, no backend).
+- **Graph Engine:** React Flow, layered layout computed client-side from prerequisites.
+- **Intelligence:** Google Gemini API (`gemini-2.5-flash`), called from the browser with a user-supplied key.
+- **Persistence:** `localStorage` (versioned schema).
 - **Icons:** Lucide-React.
-- **Charts:** Recharts.
 
 ## Quality Standards
 - Responsive design for mobile and desktop.
@@ -46,12 +46,13 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 ### 2.1 Smart Certificate Engine ("Proof of Work")
 - **Trigger:** Unlocks only when Roadmap Progress = 100%.
 - **Output:** Generates a downloadable PDF Certificate.
-- **Key Data:** User Name, Roadmap Title, Date, Unique Verification ID (Hash), and "KnowledgeGraph Verified" Seal.
+- **Key Data:** User Name, Roadmap Title, Date, Record ID (deterministic hash, stored with the roadmap).
+- **Claim boundary:** completion is self-reported, so the certificate says so. It must not use words like "Verified" or "Mastery" until the Oral Exam (2.4) or another assessment exists.
 - **Vibe:** sleek, dark-mode aesthetic (Black/Gold).
 
 ### 2.2 The "Resu-Maker" (CV Section)
 - **Concept:** Translates "Completed Nodes" into "Hired Bullet Points."
-- **AI Logic:** "Analyze the nodes {React, TypeScript, Tailwind} the user completed. Generate 3 punchy, Senior-level resume bullet points tailored for a Frontend Developer role."
+- **AI Logic:** Generate 3 bullets from completed nodes for the target role. Bullets must describe study and practice only: no invented employers, metrics or seniority.
 - **UI:** A "Career" tab in the Dashboard where users can copy/paste these directly into their CV.
 
 ### 2.3 Daily "Grind" Briefs (Hands-On Mode)
@@ -77,9 +78,9 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 - **Vibe:** High pressure, high reward. "Don't think, build."
 
 ### 3.2 The Resu-Maker (CV Engine)
-- **Goal:** Monetize learning immediately.
+- **Goal:** Turn learning into defensible resume material.
 - **Data Source:** Takes the `completedNodes` array.
-- **Output:** AI-generated "Corporate-Ready" bullet points that translate "I watched a video on React" into "Architected scalable frontend components using React and TypeScript."
+- **Output:** AI-generated Truthful bullets that translate "I watched a video on React" into "Studied React component composition and state management through guided exercises."
 
 ### 3.3 Proof of Work (Certificates)
 - **Goal:** Social signaling.
@@ -125,3 +126,7 @@ Learners today are overwhelmed by "choice paralysis." With millions of free tuto
 ### 5.3 Context-Aware Dashboard
 - **Prompt:** "You are blocking 3 goals by ignoring 'Linear Algebra'. Do it today."
 - **Gamification:** "Polymath" badge for connecting disparate domains (e.g., Coding + Biology).
+
+## 6. Status & Known Gaps
+Not built yet: Oral Exam / Boss Fight (2.4), Squad Races (2.5, needs a backend), learning-velocity chart, Sprint/Polymath modes (a "high-leverage only" filter exists).
+Shared-key hosting and cross-device sync both require a backend; see `AUDIT.md`.
