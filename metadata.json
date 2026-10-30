@@ -1,8 +1,4 @@
 {
   "name": "KnowledgeGraph",
-  "description": "A personalized learning roadmap generator that transforms 3 questions into a visual curriculum with ranked free resources.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ]
+  "description": "A personalized learning roadmap generator that transforms 3 questions into a visual curriculum with curated free resources."
 }

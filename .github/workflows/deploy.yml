@@ -25,19 +25,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # Using the cache helps speed up your mobile-to-cloud workflow
           cache: 'npm'
 
       - name: Install dependencies
-        # Using install ensures your newly generated package-lock.json is used
-        run: npm install
+        run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # No API key is injected here on purpose: VITE_* values are inlined into the
+      # public bundle. Users supply their own Gemini key inside the app.
       - name: Build
-        # This is the most important step for your KnowledgeGraph logic
-        # It injects the secret during the Vite build phase
         run: npm run build
-        env:
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
